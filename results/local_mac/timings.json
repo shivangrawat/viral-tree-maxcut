@@ -1,0 +1,30 @@
+[
+  {
+    "p": 2,
+    "n_samples": 1000000,
+    "threads": 4,
+    "wall_seconds": 0.30325962500000003,
+    "command": [
+      "./build/viral_tree_hpc",
+      "2",
+      "1000000",
+      "0",
+      "params/angles_p2.txt",
+      "results/local_mac"
+    ]
+  },
+  {
+    "p": 4,
+    "n_samples": 1000000,
+    "threads": 4,
+    "wall_seconds": 0.14180662500000002,
+    "command": [
+      "./build/viral_tree_hpc",
+      "4",
+      "1000000",
+      "0",
+      "params/angles_p4.txt",
+      "results/local_mac"
+    ]
+  }
+]

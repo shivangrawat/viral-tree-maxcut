@@ -1,0 +1,24 @@
+== test 1: p=2, 2e6 samples vs exact 0.7556152344
+   x = 0.755574 +- 0.000304   exact 0.7556152   deviation -0.14 sigma
+   PASS
+== test 2: p=12, 200000 samples, n_cut vs reference 178239
+   n_cut = 178239   PASS (bit-exact with the reference code)
+== test 3: thread independence, p=8, 50000 samples, 1 thread vs 4 threads
+   n_cut = 43647 in both   PASS
+== test 4: resume/extension, p=8 job 5, 10000 -> 30000 vs fresh 30000
+   n_cut = 26301 in both   PASS
+== merge_results.py on the test outputs
+   
+   === p = 12   (bound valid for girth g >= 26) ===
+     jobs           1   (0 still running / incomplete)
+     angles         params/angles_p12.txt   hash 3c165a06c9f561ec
+     n_samples      200000
+     n_cut          178239
+     x_thresh       0.891195  +-  0.000696      <-- c_VIRAL(12) estimate (the bound)
+     x_soft         0.871521                     (diagnostic only)
+     cost           0.0 core-hours, 0.000 core-seconds per sample
+     one-sided lower confidence bounds on c_VIRAL(12):
+        confidence     exact (Clopper-Pearson)     normal approx.
+          95.00%         0.890043                0.890050
+
+ALL CHECKS PASSED

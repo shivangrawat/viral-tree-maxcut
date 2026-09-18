@@ -1,0 +1,19 @@
+# viral_tree_hpc result/checkpoint file - machine written, do not edit
+status        complete
+p             4
+job           0
+n_target      1000000
+n_done        1000000
+n_cut         828260
+soft_sum      -506599.37840989226
+x_thresh      0.82826000
+stderr        0.00037715
+x_soft        0.75329969
+elapsed_s     0.1
+core_seconds  0.5
+threads       4
+sec_per_sample_core  0.0000
+host          Shivangs-MacBook-Pro-2.local
+angles_file   params/angles_p4.txt
+angles_hash   44980a50b45ab75d
+alpha         0.1834639830
