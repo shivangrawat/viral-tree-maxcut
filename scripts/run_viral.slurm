@@ -1,7 +1,7 @@
 #!/bin/bash
 # Submit from the repository root; see CODEX_HPC_HANDOFF.md.
 # Arguments: depth samples-per-job angles-file executable campaign-directory
-# Supply --array, --mem, --time, --account and --output at submission time.
+# Supply --array, --cpus-per-task, --mem, --time, --account and --output at submission time.
 #SBATCH --job-name=viral_tree
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -17,12 +17,9 @@ if [[ $# != 5 ]]; then
 fi
 : "${SLURM_ARRAY_TASK_ID:?submit as a SLURM array}"
 : "${SLURM_ARRAY_JOB_ID:?submit as a SLURM array}"
-if [[ ${SLURM_CPUS_PER_TASK:-1} != 1 ]]; then
-    echo "This wrapper requires --cpus-per-task=1." >&2
-    exit 2
-fi
 cd "${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK:-1}
+export OMP_THREAD_LIMIT=$OMP_NUM_THREADS
 export OMP_DYNAMIC=FALSE
 export OMP_PROC_BIND=close
 export OMP_PLACES=cores

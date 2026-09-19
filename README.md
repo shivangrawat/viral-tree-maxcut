@@ -1,5 +1,10 @@
 # viral_tree_hpc — VIRAL on the 3-regular tree (MaxCut lower bound)
 
+**CPU shared-workspace branch:** use [CODEX_HPC_HANDOFF.md](CODEX_HPC_HANDOFF.md)
+for the current kernels, exact-equivalence tests, memory requirements, and
+submission commands. The instructions and performance/resource tables below
+describe the original sample-parallel implementation and its historical results.
+
 This folder is self-contained.  It needs a C compiler with OpenMP (gcc is
 fine), `make`, and `python3`.  No libraries, no downloads, no configuration.
 

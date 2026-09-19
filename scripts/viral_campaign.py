@@ -12,8 +12,9 @@ import sys
 from datetime import datetime, timezone
 
 
+REFERENCE_COMMIT = "463f380927fb7ef21b80af9ba7146f849dc9bd62"
 SOURCE_SHA256 = "b3af7c651c2271f594d347807175c9bea602e2a65d712914eadf9fa9f3766d51"
-VOLATILE = {b"elapsed_s", b"core_seconds", b"sec_per_sample_core", b"host"}
+VOLATILE = {b"elapsed_s", b"core_seconds", b"sec_per_sample_core", b"host", b"threads"}
 FIELDS = set(b"status p job n_target n_done n_cut soft_sum x_thresh stderr x_soft "
              b"elapsed_s core_seconds threads sec_per_sample_core host angles_file "
              b"angles_hash alpha".split())
@@ -54,8 +55,13 @@ def scientific_bytes(data):
 def build_info(executable):
     executable = Path(executable).resolve()
     info = json.loads(Path(str(executable) + ".build.json").read_text())
-    if info["source_sha256"] != SOURCE_SHA256:
-        raise ValueError("build used a different protected source")
+    if info.get("build_kind") == "cpu-shared-v2":
+        if info.get("reference_source_sha256") != SOURCE_SHA256 or info.get("reference_commit") != REFERENCE_COMMIT:
+            raise ValueError("build used a different protected reference")
+        if not info.get("validated_configs"):
+            raise ValueError("build has no validated kernel/thread configurations")
+    elif info["source_sha256"] != SOURCE_SHA256:
+        raise ValueError("legacy build used a different protected source")
     if info["executable_sha256"] != sha256(executable):
         raise ValueError("executable differs from its build sidecar")
     if info.get("batch_max_per_thread") != 1 or not info.get("equivalence_passed"):
@@ -71,7 +77,7 @@ def paths(args):
     if not args.angles and (args.p % 2 or not 2 <= args.p <= 30):
         raise ValueError("this depth requires an explicit --angles file")
     angles, executable, out = angles.resolve(), Path(args.exe).resolve(), Path(args.out).resolve()
-    # The unchanged C program uses fixed-size path buffers and whitespace parsing.
+    # The retained C interface uses fixed-size path buffers and whitespace parsing.
     if len(os.fsencode(angles)) >= 512 or any(c.isspace() for c in str(angles)):
         raise ValueError("angles path must be shorter than 512 bytes and contain no whitespace")
     if len(os.fsencode(out / "jobs" / ("viral_tree_p%d_job2147483647.txt" % args.p))) >= 1100:
@@ -82,6 +88,13 @@ def paths(args):
 def initialize(args):
     angles, executable, out = paths(args)
     info = build_info(executable)
+    optimized = info.get("build_kind") == "cpu-shared-v2"
+    kernel = (args.kernel or info["default_kernel"]) if optimized else "reference"
+    if optimized:
+        if dict(kernel=kernel, threads=args.threads) not in info["validated_configs"]:
+            raise ValueError("kernel/thread configuration has not passed equivalence checks")
+    elif args.threads != 1 or args.kernel is not None:
+        raise ValueError("legacy reference builds require one thread and no --kernel")
     if not 1 <= args.p <= 40 or not 1 <= args.samples <= 4294967295:
         raise ValueError("p must be 1..40 and samples must be 1..4294967295")
     if args.first_id < 0 or args.jobs < 1 or args.first_id + args.jobs - 1 > 2147483647:
@@ -89,33 +102,42 @@ def initialize(args):
     # Refuse to adopt old results or silently replace a frozen campaign.
     if out.exists() and any(out.iterdir()):
         raise ValueError("campaign directory must be new or empty")
-    manifest = dict(schema=1, created_utc=datetime.now(timezone.utc).isoformat(),
+    manifest = dict(schema=2 if optimized else 1, created_utc=datetime.now(timezone.utc).isoformat(),
                     p=args.p, samples_per_job=args.samples,
                     expected_job_ids=list(range(args.first_id, args.first_id + args.jobs)),
                     target_samples=args.jobs * args.samples,
                     angles_file=str(angles), angles_sha256=sha256(angles),
                     angles_hash=angles_hash(angles), executable=str(executable),
                     executable_sha256=sha256(executable), build=info,
-                    omp_num_threads=1, batch_max_per_thread=1)
+                    omp_num_threads=args.threads, batch_max_per_thread=1)
+    if optimized:
+        manifest["kernel"] = kernel
     (out / "jobs").mkdir(parents=True, exist_ok=True)
     (out / "logs").mkdir()
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (out / "provenance.txt").write_text(
         "Frozen campaign build; per-invocation provenance is in logs/provenance_*.jsonl.\n" +
-        json.dumps(info, indent=2) + "\n")
+        json.dumps(dict(build=info, kernel=kernel, omp_num_threads=args.threads,
+                        angles_sha256=manifest["angles_sha256"]), indent=2) + "\n")
     print("Initialized %s: p=%d, %d jobs x %d = %d samples" %
           (out, args.p, args.jobs, args.samples, manifest["target_samples"]))
 
 
 def load_campaign(out):
     manifest = json.loads((out / "manifest.json").read_text())
-    if manifest["schema"] != 1:
+    if manifest["schema"] not in (1, 2):
         raise ValueError("unknown campaign schema")
     if sha256(manifest["angles_file"]) != manifest["angles_sha256"]:
         raise ValueError("campaign angles have changed")
     info = build_info(manifest["executable"])
     if info != manifest["build"] or info["executable_sha256"] != manifest["executable_sha256"]:
         raise ValueError("campaign build identity has changed")
+    if manifest["schema"] == 1:
+        if info["source_sha256"] != SOURCE_SHA256 or manifest["omp_num_threads"] != 1:
+            raise ValueError("legacy manifest must retain its original reference and one thread")
+    elif (info.get("build_kind") != "cpu-shared-v2" or
+          dict(kernel=manifest["kernel"], threads=manifest["omp_num_threads"]) not in info["validated_configs"]):
+        raise ValueError("manifest configuration has not passed equivalence checks")
     return manifest
 
 
@@ -134,7 +156,8 @@ def inspect_campaign(out):
                 raise ValueError("filename does not match job/depth")
             if f[b"angles_hash"].decode() != manifest["angles_hash"]:
                 raise ValueError("different angles hash")
-            if f[b"angles_file"].decode() != manifest["angles_file"] or f[b"threads"] != b"1":
+            if (f[b"angles_file"].decode() != manifest["angles_file"] or
+                    f[b"threads"] != str(manifest["omp_num_threads"]).encode()):
                 raise ValueError("different angles path or thread count")
             done, cut = int(f[b"n_done"]), int(f[b"n_cut"])
             if int(f[b"n_target"]) != n or not 0 <= cut <= done <= n:
@@ -165,8 +188,14 @@ def launch(args):
         raise ValueError("launch arguments differ from frozen manifest")
     if job not in m["expected_job_ids"]:
         raise ValueError("array task ID is outside the campaign")
-    if os.environ.get("OMP_NUM_THREADS") != "1" or os.environ.get("SLURM_CPUS_PER_TASK", "1") != "1":
-        raise ValueError("the controlled build requires one CPU and one OpenMP thread")
+    threads = str(m["omp_num_threads"])
+    if os.environ.get("OMP_NUM_THREADS") != threads or os.environ.get("SLURM_CPUS_PER_TASK", "1") != threads:
+        raise ValueError("CPU/OpenMP thread count differs from the frozen manifest")
+    if m["schema"] == 2:
+        os.environ["VIRAL_TREE_KERNEL"] = m["kernel"]
+    else:
+        os.environ.pop("VIRAL_TREE_KERNEL", None)
+    os.environ["LC_ALL"] = "C"
     array = os.environ["SLURM_ARRAY_JOB_ID"]
     if not array.isdigit():
         raise ValueError("invalid array submission ID")
@@ -175,7 +204,8 @@ def launch(args):
                   platform=platform.platform(), array_id=array, task_id=job,
                   slurm_job_id=os.environ.get("SLURM_JOB_ID"), build=m["build"],
                   angles_sha256=m["angles_sha256"], p=args.p, samples=args.samples,
-                  omp_num_threads=1)
+                  omp_num_threads=m["omp_num_threads"], kernel=m.get("kernel", "reference"),
+                  omp_proc_bind=os.environ.get("OMP_PROC_BIND"), omp_places=os.environ.get("OMP_PLACES"))
     linkage = "otool" if sys.platform == "darwin" else "ldd"
     command = [linkage] + (["-L"] if linkage == "otool" else []) + [str(executable)]
     record["runtime_linkage"] = subprocess.check_output(command, text=True, stderr=subprocess.STDOUT)
@@ -198,6 +228,8 @@ def main():
         if name == "init":
             p.add_argument("--jobs", type=int, required=True)
             p.add_argument("--first-id", type=int, default=0)
+            p.add_argument("--threads", type=int, default=1)
+            p.add_argument("--kernel", choices=("shared", "compact"))
     for name in ("status", "verify", "pending"):
         sub.add_parser(name).add_argument("out", type=Path)
     args = parser.parse_args()

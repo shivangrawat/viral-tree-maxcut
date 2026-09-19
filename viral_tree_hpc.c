@@ -14,7 +14,9 @@
  *
  *  A full description of the problem, the algorithm, the code, the resource
  *  requirements and the output format follows.  Please read at least
- *  sections 5 and 6 before running.
+ *  CODEX_HPC_HANDOFF.md for the current CPU kernels and validated launch commands.
+ *  The Intel timing table and original submission examples below are historical
+ *  reference measurements, not measurements of this shared CPU implementation.
  *
  * ----------------------------------------------------------------------------
  *  1. THE PROBLEM
@@ -151,7 +153,7 @@
  *      layer.  In particular the leaves are never updated at all - only
  *      their seeds are ever read, once, at layer 0.
  *
- *  4.4 Memory layout (per thread).  Because a vertex update at level d reads
+ *  4.4 Memory layout (one shared workspace per job).  Because an update at d reads
  *      level d-1, d and d+1 at the OLD time, the straightforward
  *      implementation keeps two full copies of the tree.  This code instead
  *      updates IN PLACE, level by level from the root downwards:
@@ -160,17 +162,22 @@
  *        - level d-1 has already been overwritten, so its OLD z-components
  *          (the only thing the update needs) are copied to a scratch array
  *          just before it is overwritten.  Two scratch arrays alternate.
- *      The leaves (half of all vertices) are never stored as states: their
- *      seeds are kept as raw random bits (1 bit each) and read at layer 0.
- *      Memory per thread:
+ *      The shared backend retains all levels 0..p-1 as Vec3 states. Leaves
+ *      are never stored as states; their seeds are raw random bits.
+ *      Full shared workspace:
  *          24 B * (2^(p+1) - 2)      states of levels 0..p-1 (3 doubles)
  *        +  8 B * ceil((4*2^p - 2)/64)   seed bits, one per vertex
  *        +  8 B * 2 * 2^(p-1)        two z-scratch arrays
  *        =  56.5 * 2^p  bytes (minus 48):
  *           p=22: 0.22 GB   p=24: 0.88 GB   p=26: 3.53 GB   p=28: 14.1 GB   p=30: 56.5 GB
  *      (GB = 2^30 bytes here; measured RSS at p=26: 3.53 GB, as computed.)
- *      Each OpenMP thread owns one such workspace, so total memory is
- *      (threads) x (the above).  Set OMP_NUM_THREADS accordingly.
+ *      The compact backend computes the 16 possible first-layer Vec3 states
+ *      using the exact rotation expressions and ordered seed signs. It stores
+ *      only levels 0..p-2 (the roots at p=1). The outer frontier is read once,
+ *      only through z, recovered from the table and original seed neighborhood.
+ *      Its two scratch arrays each hold max(2,2^(p-2)) doubles. For p>=4 this
+ *      is 28.5*2^p - 48 bytes per job, plus the small table/runtime overhead.
+ *      Neither backend duplicates its tree when the thread count increases.
  *
  *  4.5 Random numbers.  Each sample has its own xoshiro256** stream, seeded
  *      from a splitmix64 hash of its GLOBAL SAMPLE INDEX
@@ -186,11 +193,14 @@
  *      NEVER run the same (p, job_id) twice and add both results: they are
  *      the same samples.  merge_results.py refuses duplicates.
  *
- *  4.6 Parallelism.  Samples are independent and all cost the same, so
- *      OpenMP parallelizes over samples with a static schedule; nothing is
- *      parallel inside a sample.  Samples are processed in batches; the
- *      batch size adapts so that a batch takes ~20 s (it does not affect
- *      the result).
+ *  4.6 Parallelism. One persistent OpenMP team cooperates on each sample.
+ *      RNG words are generated serially, in the reference order. Vertices in
+ *      a level have disjoint writes; contiguous static partitions and barriers
+ *      preserve old neighbor values across levels. Levels smaller than 1024
+ *      vertices use thread 0. Samples and their zero-initialized additions are
+ *      committed serially in sample-index order, matching the frozen reference
+ *      with OMP_NUM_THREADS=1 and BATCH_MAX_PER_THREAD=1. No floating reduction
+ *      or adaptive batching is used. All numeric state/cache values are doubles.
  *
  *  4.7 Checkpoint / restart.  The output file
  *          <out_dir>/viral_tree_p<p>_job<job>.txt
@@ -198,12 +208,12 @@
  *      a minute and at the end.  It holds n_done, n_cut and soft_sum.  If it
  *      exists when the program starts, the run RESUMES from n_done, after
  *      checking that p, job_id and the angles file (by hash) are the same.
- *      A run killed mid-batch redoes that batch: nothing is lost or double
- *      counted.  Running with a larger n_samples than a finished job
+ *      A forced kill redoes samples after the last successful checkpoint;
+ *      committed samples are never counted twice. Running with a larger target
  *      extends it; running with a smaller one is refused.
  *
  *  4.8 Signals.  SIGTERM, SIGINT and SIGUSR1 make the program finish the
- *      current batch, write the file with status "running", and exit(0).
+ *      current sample, write the file with status "running", and exit(0).
  *      With SLURM use  --signal=B:TERM@600  (see section 5) so that the
  *      wall-time limit ends the job cleanly; resubmitting the same command
  *      continues where it stopped.
@@ -223,7 +233,8 @@
  *
  *  Run:
  *
- *      export OMP_NUM_THREADS=<threads>
+ *      export OMP_NUM_THREADS=<cooperating threads, default 1>
+ *      export VIRAL_TREE_KERNEL=compact   # or shared (full-storage fallback)
  *      ./viral_tree_hpc <p> <n_samples> [job_id=0] [angles_file] [out_dir=.]
  *
  *      p            depth, an even number for which params/angles_p<p>.txt exists
@@ -232,7 +243,7 @@
  *      angles_file  default  params/angles_p<p>.txt   (relative to the cwd)
  *      out_dir      default  .  (must exist)
  *
- *  Resources.  Measured with this code on an Intel i9-10900X (3.7 GHz),
+ *  Historical resources. Measured with the original code on Intel i9-10900X,
  *  GCC 9.4, -O3:
  *
  *      p     time / sample / core     memory / thread     4*2^p vertices
@@ -248,12 +259,11 @@
  *      n = 1e5 -> 9e-4,   n = 4e5 -> 4.5e-4,   n = 1.4e6 -> 2.4e-4.
  *  Core-hours for 1e6 samples: p=24 ~360, p=26 ~1200, p=28 ~4700, p=30 ~19000.
  *
- *  Choosing threads per job.  Threads x (memory/thread) must fit in the
- *  job's memory allocation with ~1 GB spare.  The program prints its
- *  estimate at start-up and touches all its memory immediately, so a job
- *  that is going to run out of memory fails within seconds, not hours.
+ *  Current resource requests: memory is one shared workspace plus runtime
+ *  overhead, not threads times workspace size. Check measured peak RSS and
+ *  CPU scaling before selecting a thread count. See CODEX_HPC_HANDOFF.md.
  *
- *  SLURM job arrays (ready to use: submit_p24.slurm ... submit_p30.slurm,
+ *  Historical SLURM examples (submit_p24.slurm ... submit_p30.slurm,
  *  one per depth, 1e6 samples each; see README.md).  The essence of each:
  *
  *      #SBATCH --array=0-99               # 100 independent jobs
@@ -307,13 +317,13 @@
  *      (viral_tree.c, used for all published points) for p = 1..20;
  *    - p = 1, 2: agreement with an independent exact enumeration over all
  *      2^6 and 2^14 seed configurations (exact_small_p.py);
- *    - n_cut independent of thread count, batch size, and of
- *      stop/resume and job splitting.
+ *    - n_cut independent of thread count, batch size, and stop/resume
+ *      when the global sample indices are unchanged.
  *  `make check` reruns the fast subset of these tests.
  *
- *  Test hook: if the environment variable VIRAL_TREE_DUMP=<file> is set,
- *  the run is forced to one thread and every sample appends a line
- *  "k cut s_u^z s_v^z" (hex floats) to <file>.  Used only for testing.
+ *  Test hook: VIRAL_TREE_DUMP=<file> serializes one line per completed sample,
+ *  "k cut s_u^z s_v^z" (hex floats), without changing the cooperating team.
+ *  Used only for testing; uncheckpointed rows can repeat after a forced kill.
  * ============================================================================
  */
 
@@ -328,20 +338,35 @@
 #include <unistd.h>
 #include <errno.h>
 #include <omp.h>
+#include <float.h>
+
+#if DBL_MANT_DIG != 53 || DBL_MAX_EXP != 1024 || FLT_EVAL_METHOD != 0
+#error "This implementation requires binary64 double arithmetic without excess precision"
+#endif
+#ifdef __FAST_MATH__
+#error "Fast-math is incompatible with the scientific byte-equivalence contract"
+#endif
+typedef char require_eight_byte_double[(sizeof(double) == 8) ? 1 : -1];
+typedef char require_64_bit_size_t[(sizeof(size_t) >= 8) ? 1 : -1];
+
+/* Promoted only after the local exactness/performance acceptance checks. */
+#ifndef VIRAL_TREE_DEFAULT_KERNEL
+#define VIRAL_TREE_DEFAULT_KERNEL "compact"
+#endif
 
 #define P_MAX                 40      /* sanity limit on the depth              */
-/* the next four can be overridden with -D at compile time (used by check.sh) */
+/* Reporting/checkpoint intervals can be overridden at compile time. */
 #ifndef REPORT_SEC
 #define REPORT_SEC            60.0    /* progress line to stdout at most so often */
 #endif
 #ifndef CKPT_SEC
 #define CKPT_SEC              60.0    /* output file rewritten at most so often   */
 #endif
-#ifndef BATCH_TARGET_SEC
-#define BATCH_TARGET_SEC      20.0    /* batch size grows until a batch takes this */
-#endif
 #ifndef BATCH_MAX_PER_THREAD
-#define BATCH_MAX_PER_THREAD  64      /* ... but never beyond this many per thread */
+#define BATCH_MAX_PER_THREAD  1
+#endif
+#if BATCH_MAX_PER_THREAD != 1
+#error "The shared CPU driver commits samples in order, one at a time"
 #endif
 #define N_SAMPLES_MAX         4294967295ULL   /* k must fit in 32 bits (sec. 4.5) */
 
@@ -411,9 +436,19 @@ static int     P;        /* depth                                            */
 static size_t  NTOT;     /* 4*2^P - 2 : all vertices, leaves included        */
 static size_t  NST;      /* 2*2^P - 2 : vertices of levels 0..P-1 (stored)   */
 static size_t  NW;       /* 64-bit words holding one seed bit per vertex     */
-static size_t  ZS;       /* length of each z-scratch array = 2^(P-1)         */
+static size_t  ZS;       /* length of each scratch array, set by work_sizes */
 static size_t *OFF;      /* OFF[d]  = flat index of the first vertex of level d, d = 0..P */
 static size_t *NLEV;     /* NLEV[d] = number of vertices of level d               */
+static size_t NWORK;     /* number of Vec3 states actually allocated             */
+static int compact_kernel;
+
+/* No allocation: also used to verify memory requirements through p=40. */
+static void work_sizes(int p, int compact, size_t *states, size_t *words, size_t *scratch) {
+    *states = compact && p >= 2 ? (((size_t)1 << p) - 2) : (((size_t)1 << (p + 1)) - 2);
+    *words = ((((size_t)1 << (p + 2)) - 2) + 63) / 64;
+    *scratch = compact ? (p >= 3 ? ((size_t)1 << (p - 2)) : 2)
+                       : (p >= 2 ? ((size_t)1 << (p - 1)) : 2);
+}
 
 static void build_geometry(int p) {
     P    = p;
@@ -427,12 +462,11 @@ static void build_geometry(int p) {
     }
     NST  = OFF[p];                  /* = 2 + 4 + ... + 2^p = 2^(p+1) - 2       */
     NTOT = OFF[p] + NLEV[p];        /* + 2^(p+1)            = 2^(p+2) - 2      */
-    NW   = (NTOT + 63) / 64;
-    ZS   = (p >= 2) ? ((size_t)1 << (p - 1)) : 2;   /* largest saved level is P-2 */
+    work_sizes(p, compact_kernel, &NWORK, &NW, &ZS);
 }
 
-static size_t bytes_per_thread(void) {
-    return NST * sizeof(Vec3) + NW * sizeof(uint64_t) + 2 * ZS * sizeof(double);
+static size_t bytes_per_workspace(void) {
+    return NWORK * sizeof(Vec3) + NW * sizeof(uint64_t) + 2 * ZS * sizeof(double);
 }
 
 /* ───────────────────────────── angles ──────────────────────────────────── */
@@ -441,7 +475,18 @@ typedef struct {
     double  alpha, ca, sa;          /* alpha, cos(alpha), sin(alpha)          */
     double *beta, *gamma;           /* beta[n], gamma[n], n = 0..P-1          */
     double *cb, *sb;                /* cos(beta[n]), sin(beta[n])             */
+    Vec3 first[16];                 /* exact first-layer states, never rounded */
 } Angles;
+
+static void build_first_layer(Angles *A) {
+    for (unsigned pattern = 0; pattern < 16; pattern++) {
+        double z[4];
+        for (unsigned b = 0; b < 4; b++) z[b] = (pattern & (1u << b)) ? A->sa : -A->sa;
+        const double h = z[1] + z[2] + z[3];
+        const Vec3 initial = { A->ca, 0.0, z[0] };
+        A->first[pattern] = rx_cs(rz(initial, A->gamma[0] * h), A->cb[0], A->sb[0]);
+    }
+}
 
 /* File format (as written by the training code):
  *     line 1 : "# alpha ..."  comment
@@ -501,10 +546,10 @@ static int file_hash(const char *fname, uint64_t *h) {
     return 1;
 }
 
-/* ────────────────────────── per-thread workspace ───────────────────────── */
+/* ────────────────────────── shared job workspace ───────────────────────── */
 
 typedef struct {
-    Vec3     *st;       /* states of levels 0..P-1,  NST entries              */
+    Vec3     *st;       /* full: 0..P-1; compact: 0..P-2 (roots for P=1)      */
     uint64_t *w;        /* seed bits of ALL vertices, NW words                 */
     double   *zs[2];    /* old z of the level above the one being updated, ZS  */
 } Work;
@@ -514,36 +559,92 @@ static inline double seed_z(const uint64_t *w, size_t i, double sa) {
     return ((w[i >> 6] >> (i & 63)) & 1ULL) ? sa : -sa;
 }
 
-/* ─────────────────────────── one Monte-Carlo sample ───────────────────────
- * Returns 1 if the root edge is cut, 0 otherwise; *soft_out = s_u^z s_v^z. */
-static int one_sample(Rng *rng, const Angles *A, Work *W, double *soft_out)
+static inline Vec3 first_state(const uint64_t *w, size_t i, const Angles *A) {
+    const size_t parent = i < 2 ? (i ^ 1) : ((i - 2) >> 1);
+    const size_t c0 = 2*i + 2, c1 = c0 + 1;
+    unsigned pattern = (unsigned)((w[i >> 6] >> (i & 63)) & 1ULL);
+    pattern |= (unsigned)((w[parent >> 6] >> (parent & 63)) & 1ULL) << 1;
+    pattern |= (unsigned)((w[c0 >> 6] >> (c0 & 63)) & 1ULL) << 2;
+    pattern |= (unsigned)((w[c1 >> 6] >> (c1 & 63)) & 1ULL) << 3;
+    return A->first[pattern];
+}
+
+/* Contiguous static scheduling, including uneven teams (e.g. 3 threads).
+ * Small levels run on thread 0; callers synchronize before parallel readers. */
+static void static_range(size_t count, int tid, int nt, size_t *lo, size_t *hi) {
+    if (count < 1024) { *lo = 0; *hi = tid == 0 ? count : 0; return; }
+    const size_t q = count / (size_t)nt, r = count % (size_t)nt;
+    *lo = (size_t)tid * q + ((size_t)tid < r ? (size_t)tid : r);
+    *hi = *lo + q + ((size_t)tid < r);
+}
+
+static void team_barrier(int nt) {
+    if (nt > 1) {
+        #pragma omp barrier
+    }
+}
+
+/* Called by every thread in the persistent team. No shared floating reduction.
+ * Each vertex retains the reference's exact operation/association order. */
+static void one_sample(uint64_t sample, const Angles *A, Work *W, int tid, int nt)
 {
+    /* A tiny whole tree has no parallel level. One rendezvous ensures all
+     * callers captured the sample index before thread 0 can commit it; the
+     * caller's final barrier publishes the completed sample to the team. */
+    if (nt > 1 && NWORK < 1024) {
+        team_barrier(nt);
+        if (tid != 0) return;
+        nt = 1;
+    }
     Vec3     *st = W->st;
     uint64_t *w  = W->w;
     const double ca = A->ca, sa = A->sa;
 
     /* 1. seeds: one random bit per vertex, drawn in flat-index order, 64 per
      *    word.  (Bit i of the sequence = eps of vertex i.)                  */
-    for (size_t m = 0; m < NW; m++) w[m] = rng_next(rng);
+    if (tid == 0) {
+        Rng rng = sample_rng(P, sample);
+        for (size_t m = 0; m < NW; m++) w[m] = rng_next(&rng);
+    }
+    team_barrier(nt);
 
-    /* 2. initial states of the stored levels 0..P-1 */
-    for (size_t i = 0; i < NST; i++)
-        st[i] = (Vec3){ ca, 0.0, seed_z(w, i, sa) };
+    /* 2. stored states: initial time for shared, first-layer time for compact */
+    size_t begin, end;
+    static_range(NWORK, tid, nt, &begin, &end);
+    if (compact_kernel) {
+        for (size_t i = begin; i < end; i++) st[i] = first_state(w, i, A);
+    } else {
+        for (size_t i = begin; i < end; i++) st[i] = (Vec3){ ca, 0.0, seed_z(w, i, sa) };
+    }
+    team_barrier(nt);
     /* leaves (flat indices NST..NTOT-1) are read from w[] directly at layer 0 */
 
     /* 3. the p layers, in place, top-down, inside the light cone */
-    for (int n = 0; n < P; n++) {
+    for (int n = compact_kernel ? 1 : 0; n < P; n++) {
         const double g  = A->gamma[n];
         const double cb = A->cb[n], sb = A->sb[n];
         const int    Lmax = P - n - 1;      /* deepest level that must be updated */
 
+        /* The remaining light cone only shrinks. Once all its levels are
+         * small, the other threads wait at the caller's end-of-sample barrier
+         * while thread 0 finishes every remaining layer without extra waits. */
+        if (nt > 1 && NLEV[Lmax] < 1024) {
+            if (tid != 0) return;
+            nt = 1;
+        }
+
         /* level 0: u = st[0], v = st[1].  Neighbours of u: v and level-1
          * vertices 0,1;  of v: u and level-1 vertices 2,3.  Both fields are
          * computed from OLD values before either root is overwritten.      */
-        {
+        if (tid == 0) {
             const double zu = st[0].z, zv = st[1].z;
             double c0, c1, c2, c3;
-            if (P >= 2) {                       /* level 1 is a stored level  */
+            if (compact_kernel && P == 2) {
+                c0 = first_state(w, OFF[1] + 0, A).z;
+                c1 = first_state(w, OFF[1] + 1, A).z;
+                c2 = first_state(w, OFF[1] + 2, A).z;
+                c3 = first_state(w, OFF[1] + 3, A).z;
+            } else if (P >= 2) {                /* level 1 is a stored level  */
                 const Vec3 *l1 = st + OFF[1];
                 c0 = l1[0].z; c1 = l1[1].z; c2 = l1[2].z; c3 = l1[3].z;
             } else {                            /* P == 1: level 1 = leaves   */
@@ -564,20 +665,33 @@ static int one_sample(Rng *rng, const Angles *A, Work *W, double *soft_out)
          * (d < Lmax), it saves its own old z into zs[d&1] first.           */
         for (int d = 1; d <= Lmax; d++) {
             const size_t  off  = OFF[d], nd = NLEV[d];
+            /* The roots and consecutive small levels have one writer. Only
+             * the first parallel level needs a barrier publishing that prefix. */
+            if (nd >= 1024 && NLEV[d - 1] < 1024) team_barrier(nt);
             const double *zpar = W->zs[(d - 1) & 1];
             double       *save = (d < Lmax) ? W->zs[d & 1] : NULL;
             Vec3         *lv   = st + off;
+            static_range(nd, tid, nt, &begin, &end);
 
-            if (d + 1 < P) {                    /* children are stored states  */
+            if (compact_kernel && n == 1 && d + 1 == P - 1) {
+                /* The omitted frontier is read once, only through z. Its exact
+                 * first-layer value comes from the original seed neighborhood. */
+                const size_t child = OFF[d + 1];
+                for (size_t k = begin; k < end; k++) {
+                    const double h = zpar[k >> 1] + first_state(w, child + 2*k, A).z
+                                                  + first_state(w, child + 2*k + 1, A).z;
+                    lv[k] = rx_cs(rz(lv[k], g * h), cb, sb);
+                }
+            } else if (d + 1 < P) {              /* children are stored states  */
                 const Vec3 *ch = st + OFF[d + 1];
                 if (save) {
-                    for (size_t k = 0; k < nd; k++) {
+                    for (size_t k = begin; k < end; k++) {
                         const double h = zpar[k >> 1] + ch[2*k].z + ch[2*k + 1].z;
                         save[k] = lv[k].z;
                         lv[k]   = rx_cs(rz(lv[k], g * h), cb, sb);
                     }
                 } else {
-                    for (size_t k = 0; k < nd; k++) {
+                    for (size_t k = begin; k < end; k++) {
                         const double h = zpar[k >> 1] + ch[2*k].z + ch[2*k + 1].z;
                         lv[k] = rx_cs(rz(lv[k], g * h), cb, sb);
                     }
@@ -585,21 +699,17 @@ static int one_sample(Rng *rng, const Angles *A, Work *W, double *soft_out)
             } else {                            /* d = P-1 (so n = 0): children are leaves */
                 /* here d == Lmax necessarily, hence save == NULL             */
                 const size_t lf = OFF[P];
-                for (size_t k = 0; k < nd; k++) {
+                for (size_t k = begin; k < end; k++) {
                     const double h = zpar[k >> 1] + seed_z(w, lf + 2*k, sa)
                                                   + seed_z(w, lf + 2*k + 1, sa);
                     lv[k] = rx_cs(rz(lv[k], g * h), cb, sb);
                 }
             }
+            /* All reads of the next level and this scratch generation finish
+             * before another level can overwrite them. */
+            if (nd >= 1024) team_barrier(nt);
         }
     }
-
-    /* 4. read the roots */
-    const double zu = st[0].z, zv = st[1].z;
-    *soft_out = zu * zv;
-    const int su = (zu >= 0.0) ? 1 : -1;
-    const int sv = (zv >= 0.0) ? 1 : -1;
-    return (su != sv) ? 1 : 0;
 }
 
 /* ────────────────────────── result / checkpoint file ───────────────────── */
@@ -715,7 +825,8 @@ static void install_signals(void) {
 static void usage(const char *prog) {
     fprintf(stderr,
         "usage: %s <p> <n_samples> [job_id=0] [angles_file=params/angles_p<p>.txt] [out_dir=.]\n"
-        "       threads: set OMP_NUM_THREADS (memory = threads x 56.5*2^p bytes)\n", prog);
+        "       OMP_NUM_THREADS: cooperating CPUs (default 1); one shared workspace\n"
+        "       VIRAL_TREE_KERNEL: shared or compact\n", prog);
 }
 
 int main(int argc, char **argv)
@@ -741,18 +852,27 @@ int main(int argc, char **argv)
     else          snprintf(afile, sizeof afile, "params/angles_p%d.txt", p);
     const char *outdir = (argc > 5) ? argv[5] : ".";
 
+    const char *kernel = getenv("VIRAL_TREE_KERNEL");
+    if (!kernel) kernel = VIRAL_TREE_DEFAULT_KERNEL;
+    if (strcmp(kernel, "compact") && strcmp(kernel, "shared")) {
+        fprintf(stderr, "ERROR: VIRAL_TREE_KERNEL must be shared or compact\n");
+        return 1;
+    }
+    compact_kernel = !strcmp(kernel, "compact");
+
     /* ---- angles ---- */
     Angles A;
     A.beta  = calloc((size_t)p, sizeof(double));  A.gamma = calloc((size_t)p, sizeof(double));
     A.cb    = calloc((size_t)p, sizeof(double));  A.sb    = calloc((size_t)p, sizeof(double));
     if (!A.beta || !A.gamma || !A.cb || !A.sb) { fprintf(stderr, "out of memory\n"); return 1; }
     if (!load_angles(afile, p, &A)) return 1;
+    if (compact_kernel) build_first_layer(&A);
     uint64_t ahash;
     if (!file_hash(afile, &ahash)) { fprintf(stderr, "ERROR: cannot hash '%s'\n", afile); return 1; }
 
     /* ---- geometry and memory ---- */
     build_geometry(p);
-    const size_t per_thread = bytes_per_thread();
+    const size_t workspace_bytes = bytes_per_workspace();
 
     char host[256] = "unknown";
     gethostname(host, sizeof host - 1);
@@ -798,19 +918,11 @@ int main(int argc, char **argv)
     S.angles_hash = ahash;
     S.alpha = A.alpha;
 
-    const uint64_t n_remaining = nreq - S.n_done;
-
     /* ---- threads ---- */
     const char *dump_file = getenv("VIRAL_TREE_DUMP");
-    int nt = omp_get_max_threads();
-    if (!getenv("OMP_NUM_THREADS"))
-        printf("WARNING: OMP_NUM_THREADS is not set; using %d threads (all hardware threads).\n"
-               "         Memory = threads x %.2f GB.  Set OMP_NUM_THREADS explicitly on a cluster.\n",
-               nt, per_thread / 1073741824.0);
-    if ((uint64_t)nt > n_remaining) nt = (int)n_remaining;
-    if (dump_file) nt = 1;
-    if (nt < 1) nt = 1;
-    omp_set_num_threads(nt);
+    const int requested_nt = getenv("OMP_NUM_THREADS") ? omp_get_max_threads() : 1;
+    int nt = 1;  /* actual team size, recorded even for a single remaining sample */
+    omp_set_dynamic(0);
 
     /* ---- banner ---- */
     printf("viral_tree_hpc : VIRAL on the 3-regular tree, MaxCut\n");
@@ -819,53 +931,40 @@ int main(int argc, char **argv)
     printf("  job_id          %d      (global sample index S = job*2^32 + k)\n", job);
     printf("  n_samples       %llu   (this job)\n", nreq);
     if (resumed) printf("  RESUMING        %" PRIu64 " samples already done, %" PRIu64 " to go\n",
-                        S.n_done, n_remaining);
+                        S.n_done, (uint64_t)nreq - S.n_done);
     printf("  angles          %s   (hash %016" PRIx64 ")\n", afile, ahash);
     printf("  alpha           %.10f\n", A.alpha);
     for (int n = 0; n < p; n++)
         printf("    layer %2d      beta = %13.10f   gamma = %13.10f\n", n + 1, A.beta[n], A.gamma[n]);
-    printf("  tree            %zu vertices (%zu stored, %zu leaves as bits)\n", NTOT, NST, NTOT - NST);
-    printf("  threads         %d\n", nt);
-    printf("  memory          %.3f GB / thread,  %.3f GB total\n",
-           per_thread / 1073741824.0, (double)nt * per_thread / 1073741824.0);
+    printf("  tree            %zu vertices (%zu stored Vec3 states)\n", NTOT, NWORK);
+    printf("  kernel          %s\n", kernel);
+    printf("  requested CPUs  %d\n", requested_nt);
+    printf("  workspace_bytes %zu\n", workspace_bytes);
+    printf("  memory          %.3f GiB shared workspace / job (plus runtime overhead)\n",
+           workspace_bytes / 1073741824.0);
     printf("  output          %s\n", spath);
     {   /* warn if this obviously exceeds a SLURM allocation */
         const char *mpn = getenv("SLURM_MEM_PER_NODE");   /* MB */
         if (mpn) {
             double alloc_gb = atof(mpn) / 1024.0;
-            if (alloc_gb > 0.0 && (double)nt * per_thread / 1073741824.0 > alloc_gb - 0.5)
+            if (alloc_gb > 0.0 && workspace_bytes / 1073741824.0 > alloc_gb - 0.5)
                 printf("  WARNING: needs more than the SLURM allocation of %.1f GB. "
-                       "Expect an out-of-memory kill; reduce OMP_NUM_THREADS.\n", alloc_gb);
+                       "Request more memory for the shared workspace.\n", alloc_gb);
         }
     }
     fflush(stdout);
 
-    /* ---- workspaces: allocate, then touch every page from the owning thread
-     *      (fails fast if memory is short; puts pages on the right NUMA node) */
-    Work *W = calloc((size_t)nt, sizeof *W);
-    if (!W) { fprintf(stderr, "out of memory\n"); return 1; }
-    for (int t = 0; t < nt; t++) {
-        W[t].st    = malloc(NST * sizeof(Vec3));
-        W[t].w     = malloc(NW  * sizeof(uint64_t));
-        W[t].zs[0] = malloc(ZS  * sizeof(double));
-        W[t].zs[1] = malloc(ZS  * sizeof(double));
-        if (!W[t].st || !W[t].w || !W[t].zs[0] || !W[t].zs[1]) {
-            fprintf(stderr, "ERROR: allocation failed for thread %d (%.2f GB/thread x %d threads)\n",
-                    t, per_thread / 1073741824.0, nt);
-            return 1;
-        }
+    /* One workspace, independent of the number of cooperating CPUs. */
+    Work W;
+    W.st = malloc(NWORK * sizeof(Vec3));
+    W.w = malloc(NW * sizeof(uint64_t));
+    W.zs[0] = malloc(ZS * sizeof(double));
+    W.zs[1] = malloc(ZS * sizeof(double));
+    if (!W.st || !W.w || !W.zs[0] || !W.zs[1]) {
+        fprintf(stderr, "ERROR: allocation failed (%.2f GiB shared workspace)\n",
+                workspace_bytes / 1073741824.0);
+        return 1;
     }
-    double t_alloc = omp_get_wtime();
-    #pragma omp parallel num_threads(nt)
-    {
-        int t = omp_get_thread_num();
-        memset(W[t].st,    0, NST * sizeof(Vec3));
-        memset(W[t].w,     0, NW  * sizeof(uint64_t));
-        memset(W[t].zs[0], 0, ZS  * sizeof(double));
-        memset(W[t].zs[1], 0, ZS  * sizeof(double));
-    }
-    printf("  memory touched  in %.1f s\n\n", omp_get_wtime() - t_alloc);
-    fflush(stdout);
 
     FILE *dump = NULL;
     if (dump_file) {
@@ -875,77 +974,88 @@ int main(int argc, char **argv)
 
     install_signals();
 
-    /* ---- main loop over samples k in [n_done, n_target) ---- */
-    const double t0 = omp_get_wtime();
+    /* The persistent team also first-touches the arrays in static partitions. */
+    const double t_alloc = omp_get_wtime();
+    double t0 = 0.0, t_report = 0.0, t_ckpt = 0.0;
     const double elapsed_prev = S.elapsed_s, core_prev = S.core_s;
-    double t_report = t0, t_ckpt = t0;
-    uint64_t batch = (uint64_t)nt;
-    uint64_t done  = S.n_done;
     const uint64_t start_done = S.n_done;     /* samples already in the file */
     const uint64_t jobhi = (uint64_t)job << 32;
+    uint64_t done = S.n_done;
+    int stop = 0, exit_status = 0;
 
-    if (!write_state(spath, &S, nt, host)) {  /* claim the file immediately */
-        fprintf(stderr, "ERROR: cannot write the output file %s (does out_dir exist?)\n", spath);
-        return 1;
-    }
-
-    while (done < nreq) {
-        uint64_t hi = done + batch;  if (hi > nreq) hi = nreq;
-        uint64_t bc = 0;  double bs = 0.0;
-        const double tb0 = omp_get_wtime();
-
-        #pragma omp parallel for schedule(static) reduction(+:bc,bs) num_threads(nt)
-        for (uint64_t k = done; k < hi; k++) {
-            const int tid = omp_get_thread_num();
-            Rng r = sample_rng(p, jobhi | k);
-            double soft;
-            int cut = one_sample(&r, &A, &W[tid], &soft);
-            bc += (uint64_t)cut;
-            bs += soft;
-            if (dump)   /* nt == 1 here, so the order is sequential */
-                fprintf(dump, "%" PRIu64 " %d %a %a\n", k, cut, W[tid].st[0].z, W[tid].st[1].z);
-        }
-        const double tnow = omp_get_wtime();
-        const double tbatch = tnow - tb0;
-
-        done = hi;
-        S.n_done = done;  S.n_cut += bc;  S.soft_sum += bs;
-        S.elapsed_s = elapsed_prev + (tnow - t0);
-        S.core_s    = core_prev + (tnow - t0) * nt;
-        S.complete  = (done == nreq);
-
-        /* grow the batch until it takes ~BATCH_TARGET_SEC (result unaffected) */
-        if (tbatch < BATCH_TARGET_SEC && batch < (uint64_t)BATCH_MAX_PER_THREAD * (uint64_t)nt)
-            batch *= 2;
-
-        const int stopping = g_stop && !S.complete;
-        if (tnow - t_ckpt >= CKPT_SEC || S.complete || stopping) {
-            t_ckpt = tnow;
-            write_state(spath, &S, nt, host);
-        }
-        if (tnow - t_report >= REPORT_SEC || S.complete || stopping) {
-            t_report = tnow;
-            const double x  = (double)S.n_cut / (double)done;
-            const double se = sqrt(x * (1.0 - x) / (double)done);
-            const double dt   = (tnow - t0 > 0.0) ? tnow - t0 : 1e-9;
-            const double rate = (double)(done - start_done) / dt;          /* samples/s, this run */
-            const double eta  = (double)(nreq - done) / rate;
-            printf("  [p=%d job=%d] %10" PRIu64 " / %llu   x_thresh = %.6f +- %.6f   "
-                   "%.3f s/sample/core   elapsed %.0f s   ETA %.1f h\n",
-                   p, job, done, nreq, x, se, dt * nt / (double)(done - start_done),
-                   S.elapsed_s, eta / 3600.0);
+    #pragma omp parallel if(requested_nt > 1) num_threads(requested_nt)
+    {
+        const int tid = omp_get_thread_num();
+        #pragma omp single
+        { nt = omp_get_num_threads(); }
+        #pragma omp for schedule(static)
+        for (size_t i = 0; i < NWORK; i++) W.st[i] = (Vec3){0.0, 0.0, 0.0};
+        #pragma omp for schedule(static)
+        for (size_t i = 0; i < NW; i++) W.w[i] = 0;
+        #pragma omp for schedule(static)
+        for (size_t i = 0; i < ZS; i++) W.zs[0][i] = W.zs[1][i] = 0.0;
+        if (tid == 0) {
+            printf("  threads         %d\n  memory touched  in %.1f s\n\n", nt, omp_get_wtime() - t_alloc);
             fflush(stdout);
+            t0 = t_report = t_ckpt = omp_get_wtime();
+            if (!write_state(spath, &S, nt, host)) {
+                fprintf(stderr, "ERROR: cannot write the output file %s (does out_dir exist?)\n", spath);
+                stop = exit_status = 1;
+            }
         }
-        if (stopping) {
-            printf("\nSTOPPED BY SIGNAL after %" PRIu64 " samples; state saved in %s.\n"
-                   "Rerun the same command to resume.\n", done, spath);
-            fflush(stdout);
-            if (dump) fclose(dump);
-            return 0;
+        team_barrier(nt);
+
+        while (!stop) {
+            one_sample(jobhi | done, &A, &W, tid, nt);
+            if (tid == 0) {
+                const double zu = W.st[0].z, zv = W.st[1].z;
+                const double soft = zu * zv;
+                const int cut = ((zu >= 0.0) ? 1 : -1) != ((zv >= 0.0) ? 1 : -1);
+                /* Match private reduction initialization and its combine with
+                 * the reference's zero-initialized one-sample batch sum. */
+                double private_sum = 0.0, bs = 0.0;
+                private_sum += soft;
+                bs += private_sum;
+                if (dump) fprintf(dump, "%" PRIu64 " %d %a %a\n", done, cut, zu, zv);
+                done++;
+                const double tnow = omp_get_wtime();
+                S.n_done = done; S.n_cut += (uint64_t)cut; S.soft_sum += bs;
+                S.elapsed_s = elapsed_prev + (tnow - t0);
+                S.core_s = core_prev + (tnow - t0) * nt;
+                S.complete = (done == nreq);
+                const int stopping = g_stop && !S.complete;
+                if (tnow - t_ckpt >= CKPT_SEC || S.complete || stopping) {
+                    t_ckpt = tnow;
+                    if (!write_state(spath, &S, nt, host)) stop = exit_status = 1;
+                }
+                if (tnow - t_report >= REPORT_SEC || S.complete || stopping) {
+                    t_report = tnow;
+                    const double x = (double)S.n_cut / (double)done;
+                    const double se = sqrt(x * (1.0 - x) / (double)done);
+                    const double dt = tnow - t0 > 0.0 ? tnow - t0 : 1e-9;
+                    const double rate = (double)(done - start_done) / dt;
+                    const double eta = (double)(nreq - done) / rate;
+                    printf("  [p=%d job=%d] %10" PRIu64 " / %llu   x_thresh = %.6f +- %.6f   "
+                           "%.3f s/sample/core   elapsed %.0f s   ETA %.1f h\n",
+                           p, job, done, nreq, x, se, dt * nt / (double)(done - start_done),
+                           S.elapsed_s, eta / 3600.0);
+                    fflush(stdout);
+                }
+                if (stopping) {
+                    printf("\nSTOPPED BY SIGNAL after %" PRIu64 " samples; state saved in %s.\n"
+                           "Rerun the same command to resume.\n", done, spath);
+                    fflush(stdout);
+                }
+                if (stopping || S.complete) stop = 1;
+            }
+            /* Publishes progress/stop, and prevents the next seed generation
+             * from racing with another thread's reads of this sample. */
+            team_barrier(nt);
         }
     }
 
     /* ---- final summary ---- */
+    if (S.complete && !exit_status) {
     const double x  = (double)S.n_cut / (double)S.n_done;
     const double se = sqrt(x * (1.0 - x) / (double)S.n_done);
     const double xs = 0.5 * (1.0 - S.soft_sum / (double)S.n_done);
@@ -957,9 +1067,10 @@ int main(int argc, char **argv)
     printf("  elapsed     %.0f s wall (all runs), %.4f s/sample/core\n",
            S.elapsed_s, S.core_s / (double)S.n_done);
     printf("  written to  %s\n", spath);
+    }
 
     if (dump) fclose(dump);
-    for (int t = 0; t < nt; t++) { free(W[t].st); free(W[t].w); free(W[t].zs[0]); free(W[t].zs[1]); }
-    free(W); free(A.beta); free(A.gamma); free(A.cb); free(A.sb); free(OFF); free(NLEV);
-    return 0;
+    free(W.st); free(W.w); free(W.zs[0]); free(W.zs[1]);
+    free(A.beta); free(A.gamma); free(A.cb); free(A.sb); free(OFF); free(NLEV);
+    return exit_status;
 }
