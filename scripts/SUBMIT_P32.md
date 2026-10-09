@@ -1,4 +1,32 @@
-# p = 32 campaign with the fast solver — plan, drafted 2026-09-25, NOT SUBMITTED
+# p = 32 campaign with the fast solver — SUBMITTED 2026-09-25
+
+**As submitted:** campaign `results/torch-p32-million-v1` (1000 × 1000, manifest
+2026-09-25).
+
+- **Array A 18528980:** `--qos=cpu168 --array=0-495%62 --mem=32G --time=48:00:00`.
+  `cpu168` allows at most 500 submitted jobs per user; 4 slots were taken by
+  the R3 replays.
+- **Array B 18528991:** `--qos=cpu48 --array=496-999%187 --mem=32G --time=48:00:00`
+  with `--dependency=after:18104270_499`, so it becomes eligible only once
+  p=30's last task has started, i.e. once p=30 has no pending tasks.
+- **Safety net:** R3 replays 18527853/55/56/57 are running as confirmation. If
+  any reports REPLAY FAIL, cancel both arrays.
+
+**Update 2026-09-28:**
+- Array A finished (496 tasks in 54 h; Slurm overflowed 385 of them to QoS
+  `cpuplus` / partition `all`), and all four R3 replays passed.
+- B's tasks 496–995 were cancelled and resubmitted as **array C 18717138**:
+  `--qos=cpu168 --partition=cs --array=496-995%500`. That keeps them off
+  p=30's `cpu48` quota and `cl` nodes; `cpu168` allows at most 500 submitted
+  jobs per user.
+- Tasks 996–999 stay in 18528991 on `cpu48`, still waiting on p=30's last
+  task.
+- `--exclude` is rejected by the site plugin, so overflow could still place a
+  few tasks on `cl`.
+
+**Update 2026-09-29:** 18528991 (ids 996–999, never started) was cancelled and
+resubmitted as **array 18813152**: `--qos=cpu168 --partition=cs
+--array=996-999%4`, 32G, 48 h. No p=32 task depends on p=30 any more.
 
 1,000,000 samples at p=32 with `viral_tree_fast` (byte-identical to the frozen
 solver; see `FAST_SOLVER_CHANGES.md`). The running p=30 campaign is left

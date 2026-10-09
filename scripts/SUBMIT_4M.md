@@ -1,5 +1,15 @@
 # 4M samples per depth: the 3M-sample extension of p = 2, 4, …, 32 (plan of 2026-10-02)
 
+**SUBMITTED 2026-10-02.** Gates G1 (seed audit 19056976), G2 (19055757) and
+G4 (19056978/9) passed. The 16 arrays 19058457, 19058459, 19058460,
+19058462–19058464, 19058467, 19058469, 19058501–19058503, 19058507,
+19058509, 19058511, 19058512 and 19058517 are all on
+`--dependency=afterany:18104270` (the last p=30 array). They do **not** wait
+for G3 (18980679), which runs alongside them as a confirmation. The first
+submission (19057066–19057205, on `afterok:18980679`) was cancelled before
+any task started. Binary:
+`~/viral-exe-backup/fast2-builds-19055757/viral_fast2`.
+
 Goal: bring every even depth from 2 to 32 from 1M to **4M samples**, which
 halves the standard error. The existing 1M campaigns
 (`results/torch-pP-million-v1`) are left exactly as they are. The extension
@@ -72,9 +82,10 @@ time limits over 6 h so they don't land in `cpu_short`.
    pointing at each 1M campaign.
 4. **G1** seed audit, and **G4** a launcher dry run on a scratch campaign,
    compared with the frozen binary.
-5. **Submit** the 16 arrays with `--dependency=afterok:18980679`. That is G3,
-   which itself waits for every p=30 array, so nothing starts until p=30 is
-   finished **and** G3 passes. If G3 fails, the arrays never start.
+5. **Submit** the 16 arrays with `--dependency=afterany:18104270`, so they
+   start as soon as p=30 is finished. G3 (18980679) starts at the same moment
+   and takes about 35 min. **If G3 fails, cancel all 16 arrays and do not
+   merge** any extension output.
 6. **Afterwards:** `fast2_campaign.py status`/`verify` on each extension;
    resubmit any job that stops at the limit (`pending`); finally
    `merge_results.py results/torch-pP-million-v1/jobs results/torch-pP-extension-v1/jobs -p P`.
