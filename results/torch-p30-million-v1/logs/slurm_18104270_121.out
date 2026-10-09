@@ -1036,3 +1036,18 @@ viral_tree_hpc : VIRAL on the 3-regular tree, MaxCut
   [p=30 job=121]       1983 / 2000   x_thresh = 0.904186 +- 0.006610   58.854 s/sample/core   elapsed 116707 s   ETA 0.3 h
   [p=30 job=121]       1985 / 2000   x_thresh = 0.904282 +- 0.006603   58.854 s/sample/core   elapsed 116825 s   ETA 0.2 h
   [p=30 job=121]       1987 / 2000   x_thresh = 0.904378 +- 0.006597   58.855 s/sample/core   elapsed 116944 s   ETA 0.2 h
+  [p=30 job=121]       1989 / 2000   x_thresh = 0.904475 +- 0.006591   58.855 s/sample/core   elapsed 117063 s   ETA 0.2 h
+  [p=30 job=121]       1991 / 2000   x_thresh = 0.904571 +- 0.006585   58.856 s/sample/core   elapsed 117182 s   ETA 0.1 h
+  [p=30 job=121]       1993 / 2000   x_thresh = 0.904666 +- 0.006578   58.856 s/sample/core   elapsed 117300 s   ETA 0.1 h
+  [p=30 job=121]       1995 / 2000   x_thresh = 0.904762 +- 0.006572   58.857 s/sample/core   elapsed 117419 s   ETA 0.1 h
+  [p=30 job=121]       1997 / 2000   x_thresh = 0.904857 +- 0.006566   58.857 s/sample/core   elapsed 117537 s   ETA 0.0 h
+  [p=30 job=121]       1999 / 2000   x_thresh = 0.904452 +- 0.006575   58.857 s/sample/core   elapsed 117655 s   ETA 0.0 h
+  [p=30 job=121]       2000 / 2000   x_thresh = 0.904500 +- 0.006572   58.857 s/sample/core   elapsed 117714 s   ETA 0.0 h
+
+DONE  p = 30  job = 121
+  n_samples   2000
+  n_cut       1809
+  c_VIRAL(30) = 0.904500  +-  0.006572     (thresholded: this is the bound)
+  x_soft      0.899946                 (diagnostic only)
+  elapsed     117714 s wall (all runs), 58.8570 s/sample/core
+  written to  /home/fm2452/projects/flaviano_quantum/results/torch-p30-million-v1/jobs/viral_tree_p30_job121.txt

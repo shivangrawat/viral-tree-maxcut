@@ -1,0 +1,35 @@
+viral_tree_fast2 : VIRAL on the 3-regular tree, MaxCut
+  host            cs607.hpc.nyu.edu
+  p               10
+  job_id          1000      (global sample index S = job*2^32 + k)
+  n_samples       3000000   (this job)
+  angles          /home/fm2452/projects/flaviano_quantum/params/angles_p10.txt   (hash 37a561648b2a8b2e)
+  alpha           0.0736516772
+    layer  1      beta =  1.1768314604   gamma = -0.6196338834
+    layer  2      beta =  1.3113325799   gamma = -1.0094194295
+    layer  3      beta =  1.5487952705   gamma = -0.8355124472
+    layer  4      beta =  1.4746342143   gamma = -0.7260891521
+    layer  5      beta =  1.4321798229   gamma = -0.8366595816
+    layer  6      beta =  1.3288290368   gamma = -0.7812212622
+    layer  7      beta =  1.3825223084   gamma = -0.9173862036
+    layer  8      beta =  1.1265567139   gamma = -0.9797830594
+    layer  9      beta =  0.8339296624   gamma = -1.1751600888
+    layer 10      beta =  0.3474195209   gamma = -1.2905850868
+  kernel          fused (tables, levels below p-5 never stored)
+  tree            4094 vertices (126 spins stored: levels 0..5; level 6 as z only)
+  threads         1   (inside each sample; levels below 2048 vertices on one thread)
+  memory          0.000 GB  (one sample, shared by the threads)
+  output          /home/fm2452/projects/flaviano_quantum/results/torch-p10-extension-v1/jobs/viral_tree_p10_job1000.txt
+  self-check      64 samples at p=10, fused kernel (1 threads) vs reference kernel: identical (0.01 s)
+  memory touched  in 0.0 s
+
+  [p=10 job=1000]    2219690 / 3000000   x_thresh = 0.884535 +- 0.000215   0.000 s/sample/core   elapsed 60 s   ETA 0.0 h
+  [p=10 job=1000]    3000000 / 3000000   x_thresh = 0.884494 +- 0.000185   0.000 s/sample/core   elapsed 82 s   ETA 0.0 h
+
+DONE  p = 10  job = 1000
+  n_samples   3000000
+  n_cut       2653482
+  c_VIRAL(10) = 0.884494  +-  0.000185     (thresholded: this is the bound)
+  x_soft      0.858914                 (diagnostic only)
+  elapsed     82 s wall (all runs), 0.0000 s/sample/core
+  written to  /home/fm2452/projects/flaviano_quantum/results/torch-p10-extension-v1/jobs/viral_tree_p10_job1000.txt

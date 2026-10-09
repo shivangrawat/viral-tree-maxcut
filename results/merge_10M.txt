@@ -1,0 +1,265 @@
+Final 10M-sample results per even depth p = 2..32 (2026-10-09).
+
+Each depth combines three campaigns with disjoint job ids:
+  results/torch-pP-million-v1     1M samples   job ids    0..
+  results/torch-pP-extension-v1   3M samples   job ids 1000..
+  results/torch-pP-extension-v2   6M samples   job ids 2000..
+
+Each block below is the unedited output of
+  python3 merge_results.py results/torch-pP-million-v1/jobs results/torch-pP-extension-v1/jobs results/torch-pP-extension-v2/jobs -p P
+
+
+=== p = 2   (bound valid for girth g >= 6) ===
+  jobs           4   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p2.txt   hash 75d61659265d3e81
+  n_samples      10000000
+  n_cut          7557794
+  x_thresh       0.755779  +-  0.000136      <-- c_VIRAL(2) estimate (the bound)
+  x_soft         0.651168                     (diagnostic only)
+  cost           0.0 core-hours, 0.000 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(2):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.755556                0.755556
+       99.00%         0.755463                0.755463
+       99.90%         0.755359                0.755360
+       99.99%         0.755274                0.755274
+
+
+=== p = 4   (bound valid for girth g >= 10) ===
+  jobs           4   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p4.txt   hash 44980a50b45ab75d
+  n_samples      10000000
+  n_cut          8279831
+  x_thresh       0.827983  +-  0.000119      <-- c_VIRAL(4) estimate (the bound)
+  x_soft         0.753127                     (diagnostic only)
+  cost           0.0 core-hours, 0.000 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(4):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.827787                0.827787
+       99.00%         0.827705                0.827705
+       99.90%         0.827614                0.827614
+       99.99%         0.827539                0.827539
+
+
+=== p = 6   (bound valid for girth g >= 14) ===
+  jobs           4   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p6.txt   hash 4fe8b3ff811f67f4
+  n_samples      10000000
+  n_cut          8565458
+  x_thresh       0.856546  +-  0.000111      <-- c_VIRAL(6) estimate (the bound)
+  x_soft         0.808134                     (diagnostic only)
+  cost           0.0 core-hours, 0.000 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(6):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.856363                0.856363
+       99.00%         0.856288                0.856288
+       99.90%         0.856203                0.856203
+       99.99%         0.856133                0.856134
+
+
+=== p = 8   (bound valid for girth g >= 18) ===
+  jobs           4   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p8.txt   hash ca5fba06e0a984d2
+  n_samples      10000000
+  n_cut          8732226
+  x_thresh       0.873223  +-  0.000105      <-- c_VIRAL(8) estimate (the bound)
+  x_soft         0.839043                     (diagnostic only)
+  cost           0.0 core-hours, 0.000 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(8):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.873049                0.873050
+       99.00%         0.872978                0.872978
+       99.90%         0.872897                0.872897
+       99.99%         0.872831                0.872831
+
+
+=== p = 10   (bound valid for girth g >= 22) ===
+  jobs           4   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p10.txt   hash 37a561648b2a8b2e
+  n_samples      10000000
+  n_cut          8843777
+  x_thresh       0.884378  +-  0.000101      <-- c_VIRAL(10) estimate (the bound)
+  x_soft         0.858780                     (diagnostic only)
+  cost           0.1 core-hours, 0.000 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(10):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.884211                0.884211
+       99.00%         0.884142                0.884142
+       99.90%         0.884065                0.884065
+       99.99%         0.884001                0.884002
+
+
+=== p = 12   (bound valid for girth g >= 26) ===
+  jobs           4   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p12.txt   hash 3c165a06c9f561ec
+  n_samples      10000000
+  n_cut          8917600
+  x_thresh       0.891760  +-  0.000098      <-- c_VIRAL(12) estimate (the bound)
+  x_soft         0.871939                     (diagnostic only)
+  cost           0.3 core-hours, 0.000 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(12):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.891598                0.891598
+       99.00%         0.891531                0.891531
+       99.90%         0.891456                0.891456
+       99.99%         0.891394                0.891395
+
+
+=== p = 14   (bound valid for girth g >= 30) ===
+  jobs           4   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p14.txt   hash 74c8e5784b4b0a2d
+  n_samples      10000000
+  n_cut          8969407
+  x_thresh       0.896941  +-  0.000096      <-- c_VIRAL(14) estimate (the bound)
+  x_soft         0.881101                     (diagnostic only)
+  cost           1.0 core-hours, 0.000 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(14):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.896782                0.896783
+       99.00%         0.896717                0.896717
+       99.90%         0.896643                0.896644
+       99.99%         0.896583                0.896583
+
+
+=== p = 16   (bound valid for girth g >= 34) ===
+  jobs           4   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p16.txt   hash 1cad1c97427f98bf
+  n_samples      10000000
+  n_cut          9006724
+  x_thresh       0.900672  +-  0.000095      <-- c_VIRAL(16) estimate (the bound)
+  x_soft         0.887717                     (diagnostic only)
+  cost           3.8 core-hours, 0.001 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(16):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.900517                0.900517
+       99.00%         0.900452                0.900452
+       99.90%         0.900380                0.900380
+       99.99%         0.900320                0.900321
+
+
+=== p = 18   (bound valid for girth g >= 38) ===
+  jobs           7   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p18.txt   hash ce14ea2eb1486d63
+  n_samples      10000000
+  n_cut          9038727
+  x_thresh       0.903873  +-  0.000093      <-- c_VIRAL(18) estimate (the bound)
+  x_soft         0.892912                     (diagnostic only)
+  cost           14.7 core-hours, 0.005 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(18):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.903719                0.903719
+       99.00%         0.903656                0.903656
+       99.90%         0.903584                0.903585
+       99.99%         0.903526                0.903526
+
+
+=== p = 20   (bound valid for girth g >= 42) ===
+  jobs           25   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p20.txt   hash e89e770ccf32dd1f
+  n_samples      10000000
+  n_cut          9060533
+  x_thresh       0.906053  +-  0.000092      <-- c_VIRAL(20) estimate (the bound)
+  x_soft         0.896656                     (diagnostic only)
+  cost           59.2 core-hours, 0.021 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(20):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.905901                0.905902
+       99.00%         0.905838                0.905839
+       99.90%         0.905768                0.905768
+       99.99%         0.905710                0.905710
+
+
+=== p = 22   (bound valid for girth g >= 46) ===
+  jobs           100   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p22.txt   hash fc31d24ebcab4019
+  n_samples      10000000
+  n_cut          9078247
+  x_thresh       0.907825  +-  0.000091      <-- c_VIRAL(22) estimate (the bound)
+  x_soft         0.899752                     (diagnostic only)
+  cost           239.3 core-hours, 0.086 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(22):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.907674                0.907674
+       99.00%         0.907612                0.907612
+       99.90%         0.907542                0.907542
+       99.99%         0.907484                0.907484
+
+
+=== p = 24   (bound valid for girth g >= 50) ===
+  jobs           140   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p24.txt   hash edd5c8c7cace04f4
+  n_samples      10000000
+  n_cut          9093224
+  x_thresh       0.909322  +-  0.000091      <-- c_VIRAL(24) estimate (the bound)
+  x_soft         0.902370                     (diagnostic only)
+  cost           977.4 core-hours, 0.352 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(24):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.909173                0.909173
+       99.00%         0.909111                0.909111
+       99.90%         0.909041                0.909042
+       99.99%         0.908984                0.908985
+
+
+=== p = 26   (bound valid for girth g >= 54) ===
+  jobs           325   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p26.txt   hash 3f4497a02eb6eea7
+  n_samples      10000000
+  n_cut          9105451
+  x_thresh       0.910545  +-  0.000090      <-- c_VIRAL(26) estimate (the bound)
+  x_soft         0.904359                     (diagnostic only)
+  cost           3763.9 core-hours, 1.355 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(26):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.910397                0.910397
+       99.00%         0.910335                0.910335
+       99.90%         0.910266                0.910266
+       99.99%         0.910209                0.910209
+
+
+=== p = 28   (bound valid for girth g >= 58) ===
+  jobs           650   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p28.txt   hash 39e0ae8274a2bbd5
+  n_samples      10000000
+  n_cut          9114686
+  x_thresh       0.911469  +-  0.000090      <-- c_VIRAL(28) estimate (the bound)
+  x_soft         0.906036                     (diagnostic only)
+  cost           14467.6 core-hours, 5.208 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(28):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.911321                0.911321
+       99.00%         0.911259                0.911260
+       99.90%         0.911191                0.911191
+       99.99%         0.911134                0.911135
+
+
+=== p = 30   (bound valid for girth g >= 62) ===
+  jobs           1400   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p30.txt   hash 6f62b5044d2a2a66
+  n_samples      10000000
+  n_cut          9123728
+  x_thresh       0.912373  +-  0.000089      <-- c_VIRAL(30) estimate (the bound)
+  x_soft         0.907559                     (diagnostic only)
+  cost           64166.8 core-hours, 23.100 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(30):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.912226                0.912226  > 0.912
+       99.00%         0.912165                0.912165  > 0.912
+       99.90%         0.912096                0.912096  > 0.912
+       99.99%         0.912040                0.912040  > 0.912
+
+
+=== p = 32   (bound valid for girth g >= 66) ===
+  jobs           2500   (0 still running / incomplete)
+  angles         /home/fm2452/projects/flaviano_quantum/params/angles_p32.txt   hash ade916c0630c4c01
+  n_samples      10000000
+  n_cut          9131830
+  x_thresh       0.913183  +-  0.000089      <-- c_VIRAL(32) estimate (the bound)
+  x_soft         0.908833                     (diagnostic only)
+  cost           205045.8 core-hours, 73.816 core-seconds per sample
+  one-sided lower confidence bounds on c_VIRAL(32):
+     confidence     exact (Clopper-Pearson)     normal approx.
+       95.00%         0.913036                0.913037  > 0.912
+       99.00%         0.912976                0.912976  > 0.912
+       99.90%         0.912908                0.912908  > 0.912
+       99.99%         0.912851                0.912852  > 0.912

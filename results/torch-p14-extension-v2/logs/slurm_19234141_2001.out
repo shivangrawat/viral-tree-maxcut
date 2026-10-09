@@ -1,0 +1,52 @@
+viral_tree_fast2 : VIRAL on the 3-regular tree, MaxCut
+  host            cs638.hpc.nyu.edu
+  p               14
+  job_id          2001      (global sample index S = job*2^32 + k)
+  n_samples       3000000   (this job)
+  angles          /home/fm2452/projects/flaviano_quantum/params/angles_p14.txt   (hash 74c8e5784b4b0a2d)
+  alpha           0.0474964354
+    layer  1      beta =  1.2011008432   gamma = -0.6084402854
+    layer  2      beta =  1.3154161123   gamma = -0.9481882626
+    layer  3      beta =  1.5253362829   gamma = -0.8650364458
+    layer  4      beta =  1.5545724656   gamma = -0.6952068011
+    layer  5      beta =  1.4959034731   gamma = -0.7402778064
+    layer  6      beta =  1.4803901057   gamma = -0.7978951843
+    layer  7      beta =  1.5089810032   gamma = -0.7802992695
+    layer  8      beta =  1.4349047699   gamma = -0.7749576999
+    layer  9      beta =  1.3461628751   gamma = -0.8214860458
+    layer 10      beta =  1.3914868314   gamma = -0.8186704556
+    layer 11      beta =  1.2219004687   gamma = -1.0112704910
+    layer 12      beta =  0.9891117532   gamma = -1.0122018466
+    layer 13      beta =  0.6223996968   gamma = -1.2985601963
+    layer 14      beta =  0.2846785037   gamma = -1.3597302293
+  kernel          fused (tables, levels below p-5 never stored)
+  tree            65534 vertices (2046 spins stored: levels 0..9; level 10 as z only)
+  threads         1   (inside each sample; levels below 2048 vertices on one thread)
+  memory          0.000 GB  (one sample, shared by the threads)
+  output          /home/fm2452/projects/flaviano_quantum/results/torch-p14-extension-v2/jobs/viral_tree_p14_job2001.txt
+  self-check      64 samples at p=12, fused kernel (1 threads) vs reference kernel: identical (0.02 s)
+  memory touched  in 0.0 s
+
+  [p=14 job=2001]     202558 / 3000000   x_thresh = 0.896983 +- 0.000675   0.000 s/sample/core   elapsed 60 s   ETA 0.2 h
+  [p=14 job=2001]     412886 / 3000000   x_thresh = 0.896465 +- 0.000474   0.000 s/sample/core   elapsed 120 s   ETA 0.2 h
+  [p=14 job=2001]     619580 / 3000000   x_thresh = 0.896888 +- 0.000386   0.000 s/sample/core   elapsed 180 s   ETA 0.2 h
+  [p=14 job=2001]     830660 / 3000000   x_thresh = 0.896806 +- 0.000334   0.000 s/sample/core   elapsed 240 s   ETA 0.2 h
+  [p=14 job=2001]    1041722 / 3000000   x_thresh = 0.896745 +- 0.000298   0.000 s/sample/core   elapsed 300 s   ETA 0.2 h
+  [p=14 job=2001]    1257069 / 3000000   x_thresh = 0.896800 +- 0.000271   0.000 s/sample/core   elapsed 360 s   ETA 0.1 h
+  [p=14 job=2001]    1462965 / 3000000   x_thresh = 0.896820 +- 0.000251   0.000 s/sample/core   elapsed 420 s   ETA 0.1 h
+  [p=14 job=2001]    1674448 / 3000000   x_thresh = 0.896799 +- 0.000235   0.000 s/sample/core   elapsed 480 s   ETA 0.1 h
+  [p=14 job=2001]    1882087 / 3000000   x_thresh = 0.896932 +- 0.000222   0.000 s/sample/core   elapsed 540 s   ETA 0.1 h
+  [p=14 job=2001]    2092541 / 3000000   x_thresh = 0.896751 +- 0.000210   0.000 s/sample/core   elapsed 600 s   ETA 0.1 h
+  [p=14 job=2001]    2303423 / 3000000   x_thresh = 0.896826 +- 0.000200   0.000 s/sample/core   elapsed 660 s   ETA 0.1 h
+  [p=14 job=2001]    2513517 / 3000000   x_thresh = 0.896827 +- 0.000192   0.000 s/sample/core   elapsed 720 s   ETA 0.0 h
+  [p=14 job=2001]    2722322 / 3000000   x_thresh = 0.896802 +- 0.000184   0.000 s/sample/core   elapsed 780 s   ETA 0.0 h
+  [p=14 job=2001]    2933058 / 3000000   x_thresh = 0.896816 +- 0.000178   0.000 s/sample/core   elapsed 840 s   ETA 0.0 h
+  [p=14 job=2001]    3000000 / 3000000   x_thresh = 0.896809 +- 0.000176   0.000 s/sample/core   elapsed 859 s   ETA 0.0 h
+
+DONE  p = 14  job = 2001
+  n_samples   3000000
+  n_cut       2690428
+  c_VIRAL(14) = 0.896809  +-  0.000176     (thresholded: this is the bound)
+  x_soft      0.880972                 (diagnostic only)
+  elapsed     859 s wall (all runs), 0.0003 s/sample/core
+  written to  /home/fm2452/projects/flaviano_quantum/results/torch-p14-extension-v2/jobs/viral_tree_p14_job2001.txt

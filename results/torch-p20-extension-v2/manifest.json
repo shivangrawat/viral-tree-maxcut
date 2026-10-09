@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "created_utc": "2026-10-05T16:56:43.581373+00:00",
+  "p": 20,
+  "samples_per_job": 1000000,
+  "expected_job_ids": [
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005
+  ],
+  "target_samples": 6000000,
+  "angles_file": "/home/fm2452/projects/flaviano_quantum/params/angles_p20.txt",
+  "angles_sha256": "67372fc960abca608f2c97473fe535553e1a6a74b4cacbd179c0d5624664c9d1",
+  "angles_hash": "e89e770ccf32dd1f",
+  "executable": "/home/fm2452/viral-exe-backup/fast2-builds-19055757/viral_fast2",
+  "executable_sha256": "e18230cf77b905472a985cf9665e2781278a0a98894d0b0acae8b786418cad29",
+  "build": {
+    "profile": "fast2",
+    "source": "viral_tree_fast2.c",
+    "source_sha256": "8b12711a2b6f15e652a7677c43b80aa6715570ffd28b38d9ec4afdab97251988",
+    "executable_sha256": "e18230cf77b905472a985cf9665e2781278a0a98894d0b0acae8b786418cad29",
+    "compile_command": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-DBATCH_MAX_PER_THREAD=1",
+      "-O3",
+      "-ffp-contract=off",
+      "-fopenmp",
+      "/home/fm2452/projects/flaviano_quantum/.claude/worktrees/faster-wt/viral_tree_fast2.c",
+      "-lm",
+      "-o",
+      "/scratch/fm2452/viral-fast/fast2gate-19055757/viral_fast2"
+    ],
+    "compiler_version": "gcc (GCC) 14.3.1 20251022 (Red Hat 14.3.1-4)",
+    "system": "Linux",
+    "machine": "x86_64",
+    "batch_max_per_thread": 1,
+    "equivalence_passed": true,
+    "validation": {
+      "suite": "job 18986377: 199 cases p=1..24, T=1/4/8, byte-identical to frozen 0f3f8d44; check.sh",
+      "large": "job 18986379: p=26/28/30 identical to fast bc4230d1 at T=1,2,4,8",
+      "scaling": "jobs 19053518/19053519: p=30 identical at T=1..32",
+      "gate_p32": "this job: p=32 T=8 vs fast, see log"
+    },
+    "built_on": "cs643.hpc.nyu.edu",
+    "created_utc": "2026-10-02T18:33:21.155374+00:00"
+  },
+  "omp_num_threads": 1,
+  "batch_max_per_thread": 1,
+  "avoided_campaigns": [
+    "/home/fm2452/projects/flaviano_quantum/results/torch-p20-million-v1",
+    "/home/fm2452/projects/flaviano_quantum/results/torch-p20-extension-v1"
+  ]
+}

@@ -1,0 +1,19 @@
+# viral_tree_hpc result/checkpoint file - machine written, do not edit
+status        complete
+p             32
+job           2653
+n_target      6000
+n_done        6000
+n_cut         5437
+soft_sum      -4825.004851977802
+x_thresh      0.90616667
+stderr        0.00376450
+x_soft        0.90208374
+elapsed_s     65128.2
+core_seconds  521025.9
+threads       8
+sec_per_sample_core  86.8376
+host          cs688.hpc.nyu.edu
+angles_file   /home/fm2452/projects/flaviano_quantum/params/angles_p32.txt
+angles_hash   ade916c0630c4c01
+alpha         0.0177219166

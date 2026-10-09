@@ -1,0 +1,65 @@
+viral_tree_hpc : VIRAL on the 3-regular tree, MaxCut
+  host            cl014.hpc.nyu.edu
+  p               30
+  job_id          408      (global sample index S = job*2^32 + k)
+  n_samples       2000   (this job)
+  RESUMING        1987 samples already done, 13 to go
+  angles          /home/fm2452/projects/flaviano_quantum/params/angles_p30.txt   (hash 6f62b5044d2a2a66)
+  alpha           0.0191897703
+    layer  1      beta =  1.2187061505   gamma = -0.5953755523
+    layer  2      beta =  1.3341245730   gamma = -0.9275802996
+    layer  3      beta =  1.5052707752   gamma = -0.8583015296
+    layer  4      beta =  1.5631020102   gamma = -0.6934054390
+    layer  5      beta =  1.5426115507   gamma = -0.6917070495
+    layer  6      beta =  1.5149413535   gamma = -0.7295386433
+    layer  7      beta =  1.5221712466   gamma = -0.7166999483
+    layer  8      beta =  1.5242917444   gamma = -0.6929470059
+    layer  9      beta =  1.5098060317   gamma = -0.7003018138
+    layer 10      beta =  1.5071568526   gamma = -0.7094255139
+    layer 11      beta =  1.5162888123   gamma = -0.7077858912
+    layer 12      beta =  1.5166940610   gamma = -0.7136831109
+    layer 13      beta =  1.5155011286   gamma = -0.7256310531
+    layer 14      beta =  1.5149871825   gamma = -0.7313640494
+    layer 15      beta =  1.5108518131   gamma = -0.7358226101
+    layer 16      beta =  1.4982030794   gamma = -0.7497719839
+    layer 17      beta =  1.4935890293   gamma = -0.7569373212
+    layer 18      beta =  1.4778638662   gamma = -0.7602155529
+    layer 19      beta =  1.4536628013   gamma = -0.7831519258
+    layer 20      beta =  1.4492242408   gamma = -0.7901676926
+    layer 21      beta =  1.3767310838   gamma = -0.8064602389
+    layer 22      beta =  1.3304563673   gamma = -0.8270182706
+    layer 23      beta =  1.2237435479   gamma = -0.8056281564
+    layer 24      beta =  1.2216678660   gamma = -0.9404345759
+    layer 25      beta =  0.9989685302   gamma = -1.0031058900
+    layer 26      beta =  0.8754095391   gamma = -0.9990377732
+    layer 27      beta =  0.7760987309   gamma = -1.1026975009
+    layer 28      beta =  0.6119165899   gamma = -1.2121367226
+    layer 29      beta =  0.3896942425   gamma = -1.3945138549
+    layer 30      beta =  0.2111620279   gamma = -1.3437209446
+  tree            4294967294 vertices (2147483646 stored, 2147483648 leaves as bits)
+  threads         1
+  memory          56.500 GB / thread,  56.500 GB total
+  output          /home/fm2452/projects/flaviano_quantum/results/torch-p30-million-v1/jobs/viral_tree_p30_job408.txt
+  memory touched  in 37.6 s
+
+  [p=30 job=408]       1988 / 2000   x_thresh = 0.903421 +- 0.006625   78.612 s/sample/core   elapsed 172235 s   ETA 0.3 h
+  [p=30 job=408]       1989 / 2000   x_thresh = 0.903469 +- 0.006622   78.930 s/sample/core   elapsed 172315 s   ETA 0.2 h
+  [p=30 job=408]       1990 / 2000   x_thresh = 0.903518 +- 0.006619   78.671 s/sample/core   elapsed 172393 s   ETA 0.2 h
+  [p=30 job=408]       1991 / 2000   x_thresh = 0.903566 +- 0.006615   77.955 s/sample/core   elapsed 172469 s   ETA 0.2 h
+  [p=30 job=408]       1992 / 2000   x_thresh = 0.903614 +- 0.006612   77.177 s/sample/core   elapsed 172543 s   ETA 0.2 h
+  [p=30 job=408]       1993 / 2000   x_thresh = 0.903663 +- 0.006609   76.728 s/sample/core   elapsed 172617 s   ETA 0.1 h
+  [p=30 job=408]       1994 / 2000   x_thresh = 0.903711 +- 0.006606   76.693 s/sample/core   elapsed 172694 s   ETA 0.1 h
+  [p=30 job=408]       1995 / 2000   x_thresh = 0.903759 +- 0.006603   76.710 s/sample/core   elapsed 172770 s   ETA 0.1 h
+  [p=30 job=408]       1996 / 2000   x_thresh = 0.903808 +- 0.006600   76.527 s/sample/core   elapsed 172845 s   ETA 0.1 h
+  [p=30 job=408]       1997 / 2000   x_thresh = 0.903355 +- 0.006612   76.093 s/sample/core   elapsed 172918 s   ETA 0.1 h
+  [p=30 job=408]       1998 / 2000   x_thresh = 0.903403 +- 0.006609   75.598 s/sample/core   elapsed 172988 s   ETA 0.0 h
+  [p=30 job=408]       1999 / 2000   x_thresh = 0.903452 +- 0.006606   75.389 s/sample/core   elapsed 173061 s   ETA 0.0 h
+  [p=30 job=408]       2000 / 2000   x_thresh = 0.903000 +- 0.006618   75.160 s/sample/core   elapsed 173134 s   ETA 0.0 h
+
+DONE  p = 30  job = 408
+  n_samples   2000
+  n_cut       1806
+  c_VIRAL(30) = 0.903000  +-  0.006618     (thresholded: this is the bound)
+  x_soft      0.898837                 (diagnostic only)
+  elapsed     173134 s wall (all runs), 86.5669 s/sample/core
+  written to  /home/fm2452/projects/flaviano_quantum/results/torch-p30-million-v1/jobs/viral_tree_p30_job408.txt

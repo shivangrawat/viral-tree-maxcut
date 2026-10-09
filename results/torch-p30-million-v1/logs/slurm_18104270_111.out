@@ -1568,3 +1568,22 @@ viral_tree_hpc : VIRAL on the 3-regular tree, MaxCut
   [p=30 job=111]       1974 / 2000   x_thresh = 0.902229 +- 0.006685   60.009 s/sample/core   elapsed 118458 s   ETA 0.4 h
   [p=30 job=111]       1976 / 2000   x_thresh = 0.902328 +- 0.006678   60.008 s/sample/core   elapsed 118576 s   ETA 0.4 h
   [p=30 job=111]       1978 / 2000   x_thresh = 0.902427 +- 0.006672   60.007 s/sample/core   elapsed 118693 s   ETA 0.4 h
+  [p=30 job=111]       1980 / 2000   x_thresh = 0.902020 +- 0.006681   60.006 s/sample/core   elapsed 118811 s   ETA 0.3 h
+  [p=30 job=111]       1982 / 2000   x_thresh = 0.902119 +- 0.006675   60.004 s/sample/core   elapsed 118929 s   ETA 0.3 h
+  [p=30 job=111]       1984 / 2000   x_thresh = 0.902218 +- 0.006668   60.003 s/sample/core   elapsed 119047 s   ETA 0.3 h
+  [p=30 job=111]       1986 / 2000   x_thresh = 0.902316 +- 0.006662   60.002 s/sample/core   elapsed 119164 s   ETA 0.2 h
+  [p=30 job=111]       1988 / 2000   x_thresh = 0.901911 +- 0.006671   60.001 s/sample/core   elapsed 119282 s   ETA 0.2 h
+  [p=30 job=111]       1990 / 2000   x_thresh = 0.902010 +- 0.006665   60.000 s/sample/core   elapsed 119400 s   ETA 0.2 h
+  [p=30 job=111]       1992 / 2000   x_thresh = 0.902108 +- 0.006658   59.999 s/sample/core   elapsed 119518 s   ETA 0.1 h
+  [p=30 job=111]       1994 / 2000   x_thresh = 0.902207 +- 0.006652   59.997 s/sample/core   elapsed 119634 s   ETA 0.1 h
+  [p=30 job=111]       1996 / 2000   x_thresh = 0.902305 +- 0.006646   59.995 s/sample/core   elapsed 119750 s   ETA 0.1 h
+  [p=30 job=111]       1998 / 2000   x_thresh = 0.902402 +- 0.006639   59.992 s/sample/core   elapsed 119865 s   ETA 0.0 h
+  [p=30 job=111]       2000 / 2000   x_thresh = 0.902000 +- 0.006648   59.990 s/sample/core   elapsed 119979 s   ETA 0.0 h
+
+DONE  p = 30  job = 111
+  n_samples   2000
+  n_cut       1804
+  c_VIRAL(30) = 0.902000  +-  0.006648     (thresholded: this is the bound)
+  x_soft      0.898340                 (diagnostic only)
+  elapsed     119979 s wall (all runs), 59.9896 s/sample/core
+  written to  /home/fm2452/projects/flaviano_quantum/results/torch-p30-million-v1/jobs/viral_tree_p30_job111.txt

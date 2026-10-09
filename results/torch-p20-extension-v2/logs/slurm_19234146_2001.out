@@ -1,0 +1,336 @@
+viral_tree_fast2 : VIRAL on the 3-regular tree, MaxCut
+  host            cs648.hpc.nyu.edu
+  p               20
+  job_id          2001      (global sample index S = job*2^32 + k)
+  n_samples       1000000   (this job)
+  angles          /home/fm2452/projects/flaviano_quantum/params/angles_p20.txt   (hash e89e770ccf32dd1f)
+  alpha           0.0307988195
+    layer  1      beta =  1.2187124747   gamma = -0.6033282334
+    layer  2      beta =  1.3249339372   gamma = -0.9190181894
+    layer  3      beta =  1.5159745466   gamma = -0.8601200068
+    layer  4      beta =  1.5722708120   gamma = -0.6939393597
+    layer  5      beta =  1.5415644732   gamma = -0.7071224043
+    layer  6      beta =  1.5179322824   gamma = -0.7610791077
+    layer  7      beta =  1.5318666885   gamma = -0.7479182586
+    layer  8      beta =  1.5268114657   gamma = -0.7308358710
+    layer  9      beta =  1.5100693040   gamma = -0.7527725294
+    layer 10      beta =  1.5076868572   gamma = -0.7559631025
+    layer 11      beta =  1.4899895727   gamma = -0.7656540804
+    layer 12      beta =  1.4713485651   gamma = -0.7923244495
+    layer 13      beta =  1.4322811310   gamma = -0.7792733746
+    layer 14      beta =  1.3287251893   gamma = -0.8257574552
+    layer 15      beta =  1.3382298316   gamma = -0.8173540153
+    layer 16      beta =  1.2289940000   gamma = -0.9801129233
+    layer 17      beta =  0.9988386369   gamma = -0.9988649217
+    layer 18      beta =  0.7742458281   gamma = -1.1316089654
+    layer 19      beta =  0.4412527396   gamma = -1.3800538809
+    layer 20      beta =  0.2249060571   gamma = -1.3785703322
+  kernel          fused (tables, levels below p-5 never stored)
+  tree            4194302 vertices (131070 spins stored: levels 0..15; level 16 as z only)
+  threads         1   (inside each sample; levels below 2048 vertices on one thread)
+  memory          0.005 GB  (one sample, shared by the threads)
+  output          /home/fm2452/projects/flaviano_quantum/results/torch-p20-extension-v2/jobs/viral_tree_p20_job2001.txt
+  self-check      64 samples at p=12, fused kernel (1 threads) vs reference kernel: identical (0.02 s)
+  memory touched  in 0.0 s
+
+  [p=20 job=2001]       3305 / 1000000   x_thresh = 0.916490 +- 0.004812   0.018 s/sample/core   elapsed 60 s   ETA 5.0 h
+  [p=20 job=2001]       6712 / 1000000   x_thresh = 0.908224 +- 0.003524   0.018 s/sample/core   elapsed 120 s   ETA 4.9 h
+  [p=20 job=2001]      10172 / 1000000   x_thresh = 0.906017 +- 0.002893   0.018 s/sample/core   elapsed 180 s   ETA 4.9 h
+  [p=20 job=2001]      13511 / 1000000   x_thresh = 0.905336 +- 0.002519   0.018 s/sample/core   elapsed 240 s   ETA 4.9 h
+  [p=20 job=2001]      16834 / 1000000   x_thresh = 0.905727 +- 0.002252   0.018 s/sample/core   elapsed 300 s   ETA 4.9 h
+  [p=20 job=2001]      20310 / 1000000   x_thresh = 0.906056 +- 0.002047   0.018 s/sample/core   elapsed 360 s   ETA 4.8 h
+  [p=20 job=2001]      23675 / 1000000   x_thresh = 0.906568 +- 0.001891   0.018 s/sample/core   elapsed 420 s   ETA 4.8 h
+  [p=20 job=2001]      27020 / 1000000   x_thresh = 0.905551 +- 0.001779   0.018 s/sample/core   elapsed 480 s   ETA 4.8 h
+  [p=20 job=2001]      30406 / 1000000   x_thresh = 0.905150 +- 0.001680   0.018 s/sample/core   elapsed 540 s   ETA 4.8 h
+  [p=20 job=2001]      33784 / 1000000   x_thresh = 0.905192 +- 0.001594   0.018 s/sample/core   elapsed 600 s   ETA 4.8 h
+  [p=20 job=2001]      37173 / 1000000   x_thresh = 0.904850 +- 0.001522   0.018 s/sample/core   elapsed 660 s   ETA 4.7 h
+  [p=20 job=2001]      40602 / 1000000   x_thresh = 0.905103 +- 0.001454   0.018 s/sample/core   elapsed 720 s   ETA 4.7 h
+  [p=20 job=2001]      43949 / 1000000   x_thresh = 0.905982 +- 0.001392   0.018 s/sample/core   elapsed 780 s   ETA 4.7 h
+  [p=20 job=2001]      47337 / 1000000   x_thresh = 0.905697 +- 0.001343   0.018 s/sample/core   elapsed 840 s   ETA 4.7 h
+  [p=20 job=2001]      50718 / 1000000   x_thresh = 0.905339 +- 0.001300   0.018 s/sample/core   elapsed 900 s   ETA 4.7 h
+  [p=20 job=2001]      54108 / 1000000   x_thresh = 0.905337 +- 0.001259   0.018 s/sample/core   elapsed 960 s   ETA 4.7 h
+  [p=20 job=2001]      57493 / 1000000   x_thresh = 0.905728 +- 0.001219   0.018 s/sample/core   elapsed 1020 s   ETA 4.6 h
+  [p=20 job=2001]      60917 / 1000000   x_thresh = 0.905396 +- 0.001186   0.018 s/sample/core   elapsed 1080 s   ETA 4.6 h
+  [p=20 job=2001]      64360 / 1000000   x_thresh = 0.905687 +- 0.001152   0.018 s/sample/core   elapsed 1140 s   ETA 4.6 h
+  [p=20 job=2001]      67791 / 1000000   x_thresh = 0.905813 +- 0.001122   0.018 s/sample/core   elapsed 1200 s   ETA 4.6 h
+  [p=20 job=2001]      71221 / 1000000   x_thresh = 0.905814 +- 0.001094   0.018 s/sample/core   elapsed 1260 s   ETA 4.6 h
+  [p=20 job=2001]      74683 / 1000000   x_thresh = 0.905775 +- 0.001069   0.018 s/sample/core   elapsed 1320 s   ETA 4.5 h
+  [p=20 job=2001]      78141 / 1000000   x_thresh = 0.905440 +- 0.001047   0.018 s/sample/core   elapsed 1380 s   ETA 4.5 h
+  [p=20 job=2001]      81600 / 1000000   x_thresh = 0.905564 +- 0.001024   0.018 s/sample/core   elapsed 1440 s   ETA 4.5 h
+  [p=20 job=2001]      85038 / 1000000   x_thresh = 0.905654 +- 0.001002   0.018 s/sample/core   elapsed 1500 s   ETA 4.5 h
+  [p=20 job=2001]      88495 / 1000000   x_thresh = 0.905712 +- 0.000982   0.018 s/sample/core   elapsed 1560 s   ETA 4.5 h
+  [p=20 job=2001]      92015 / 1000000   x_thresh = 0.905505 +- 0.000964   0.018 s/sample/core   elapsed 1620 s   ETA 4.4 h
+  [p=20 job=2001]      95454 / 1000000   x_thresh = 0.905536 +- 0.000947   0.018 s/sample/core   elapsed 1680 s   ETA 4.4 h
+  [p=20 job=2001]      98848 / 1000000   x_thresh = 0.905441 +- 0.000931   0.018 s/sample/core   elapsed 1740 s   ETA 4.4 h
+  [p=20 job=2001]     102319 / 1000000   x_thresh = 0.905462 +- 0.000915   0.018 s/sample/core   elapsed 1800 s   ETA 4.4 h
+  [p=20 job=2001]     105742 / 1000000   x_thresh = 0.905468 +- 0.000900   0.018 s/sample/core   elapsed 1860 s   ETA 4.4 h
+  [p=20 job=2001]     109087 / 1000000   x_thresh = 0.905681 +- 0.000885   0.018 s/sample/core   elapsed 1920 s   ETA 4.4 h
+  [p=20 job=2001]     112424 / 1000000   x_thresh = 0.905447 +- 0.000873   0.018 s/sample/core   elapsed 1980 s   ETA 4.3 h
+  [p=20 job=2001]     115835 / 1000000   x_thresh = 0.905374 +- 0.000860   0.018 s/sample/core   elapsed 2040 s   ETA 4.3 h
+  [p=20 job=2001]     119243 / 1000000   x_thresh = 0.905286 +- 0.000848   0.018 s/sample/core   elapsed 2100 s   ETA 4.3 h
+  [p=20 job=2001]     122675 / 1000000   x_thresh = 0.905246 +- 0.000836   0.018 s/sample/core   elapsed 2160 s   ETA 4.3 h
+  [p=20 job=2001]     126047 / 1000000   x_thresh = 0.905067 +- 0.000826   0.018 s/sample/core   elapsed 2220 s   ETA 4.3 h
+  [p=20 job=2001]     129436 / 1000000   x_thresh = 0.905003 +- 0.000815   0.018 s/sample/core   elapsed 2280 s   ETA 4.3 h
+  [p=20 job=2001]     132933 / 1000000   x_thresh = 0.905012 +- 0.000804   0.018 s/sample/core   elapsed 2340 s   ETA 4.2 h
+  [p=20 job=2001]     136278 / 1000000   x_thresh = 0.904944 +- 0.000794   0.018 s/sample/core   elapsed 2400 s   ETA 4.2 h
+  [p=20 job=2001]     139677 / 1000000   x_thresh = 0.904959 +- 0.000785   0.018 s/sample/core   elapsed 2460 s   ETA 4.2 h
+  [p=20 job=2001]     143089 / 1000000   x_thresh = 0.904933 +- 0.000775   0.018 s/sample/core   elapsed 2520 s   ETA 4.2 h
+  [p=20 job=2001]     146482 / 1000000   x_thresh = 0.904944 +- 0.000766   0.018 s/sample/core   elapsed 2580 s   ETA 4.2 h
+  [p=20 job=2001]     149874 / 1000000   x_thresh = 0.904900 +- 0.000758   0.018 s/sample/core   elapsed 2640 s   ETA 4.2 h
+  [p=20 job=2001]     153252 / 1000000   x_thresh = 0.904726 +- 0.000750   0.018 s/sample/core   elapsed 2700 s   ETA 4.1 h
+  [p=20 job=2001]     156630 / 1000000   x_thresh = 0.904859 +- 0.000741   0.018 s/sample/core   elapsed 2760 s   ETA 4.1 h
+  [p=20 job=2001]     160124 / 1000000   x_thresh = 0.904805 +- 0.000733   0.018 s/sample/core   elapsed 2820 s   ETA 4.1 h
+  [p=20 job=2001]     163490 / 1000000   x_thresh = 0.904655 +- 0.000726   0.018 s/sample/core   elapsed 2880 s   ETA 4.1 h
+  [p=20 job=2001]     166818 / 1000000   x_thresh = 0.904794 +- 0.000719   0.018 s/sample/core   elapsed 2940 s   ETA 4.1 h
+  [p=20 job=2001]     170218 / 1000000   x_thresh = 0.904822 +- 0.000711   0.018 s/sample/core   elapsed 3000 s   ETA 4.1 h
+  [p=20 job=2001]     173637 / 1000000   x_thresh = 0.904847 +- 0.000704   0.018 s/sample/core   elapsed 3060 s   ETA 4.0 h
+  [p=20 job=2001]     177017 / 1000000   x_thresh = 0.904987 +- 0.000697   0.018 s/sample/core   elapsed 3120 s   ETA 4.0 h
+  [p=20 job=2001]     180439 / 1000000   x_thresh = 0.905004 +- 0.000690   0.018 s/sample/core   elapsed 3180 s   ETA 4.0 h
+  [p=20 job=2001]     183861 / 1000000   x_thresh = 0.905135 +- 0.000683   0.018 s/sample/core   elapsed 3240 s   ETA 4.0 h
+  [p=20 job=2001]     187260 / 1000000   x_thresh = 0.905228 +- 0.000677   0.018 s/sample/core   elapsed 3300 s   ETA 4.0 h
+  [p=20 job=2001]     190656 / 1000000   x_thresh = 0.905175 +- 0.000671   0.018 s/sample/core   elapsed 3361 s   ETA 4.0 h
+  [p=20 job=2001]     194213 / 1000000   x_thresh = 0.905290 +- 0.000664   0.018 s/sample/core   elapsed 3421 s   ETA 3.9 h
+  [p=20 job=2001]     197747 / 1000000   x_thresh = 0.905374 +- 0.000658   0.018 s/sample/core   elapsed 3481 s   ETA 3.9 h
+  [p=20 job=2001]     201254 / 1000000   x_thresh = 0.905329 +- 0.000653   0.018 s/sample/core   elapsed 3541 s   ETA 3.9 h
+  [p=20 job=2001]     204701 / 1000000   x_thresh = 0.905247 +- 0.000647   0.018 s/sample/core   elapsed 3601 s   ETA 3.9 h
+  [p=20 job=2001]     208045 / 1000000   x_thresh = 0.905126 +- 0.000642   0.018 s/sample/core   elapsed 3661 s   ETA 3.9 h
+  [p=20 job=2001]     211554 / 1000000   x_thresh = 0.904951 +- 0.000638   0.018 s/sample/core   elapsed 3721 s   ETA 3.9 h
+  [p=20 job=2001]     214872 / 1000000   x_thresh = 0.905009 +- 0.000633   0.018 s/sample/core   elapsed 3781 s   ETA 3.8 h
+  [p=20 job=2001]     218315 / 1000000   x_thresh = 0.905119 +- 0.000627   0.018 s/sample/core   elapsed 3841 s   ETA 3.8 h
+  [p=20 job=2001]     221650 / 1000000   x_thresh = 0.905098 +- 0.000623   0.018 s/sample/core   elapsed 3901 s   ETA 3.8 h
+  [p=20 job=2001]     224997 / 1000000   x_thresh = 0.905092 +- 0.000618   0.018 s/sample/core   elapsed 3961 s   ETA 3.8 h
+  [p=20 job=2001]     228429 / 1000000   x_thresh = 0.905275 +- 0.000613   0.018 s/sample/core   elapsed 4021 s   ETA 3.8 h
+  [p=20 job=2001]     231884 / 1000000   x_thresh = 0.905211 +- 0.000608   0.018 s/sample/core   elapsed 4081 s   ETA 3.8 h
+  [p=20 job=2001]     235372 / 1000000   x_thresh = 0.905086 +- 0.000604   0.018 s/sample/core   elapsed 4141 s   ETA 3.7 h
+  [p=20 job=2001]     238715 / 1000000   x_thresh = 0.905079 +- 0.000600   0.018 s/sample/core   elapsed 4201 s   ETA 3.7 h
+  [p=20 job=2001]     242099 / 1000000   x_thresh = 0.904964 +- 0.000596   0.018 s/sample/core   elapsed 4261 s   ETA 3.7 h
+  [p=20 job=2001]     245570 / 1000000   x_thresh = 0.904940 +- 0.000592   0.018 s/sample/core   elapsed 4321 s   ETA 3.7 h
+  [p=20 job=2001]     249026 / 1000000   x_thresh = 0.904841 +- 0.000588   0.018 s/sample/core   elapsed 4381 s   ETA 3.7 h
+  [p=20 job=2001]     252368 / 1000000   x_thresh = 0.904881 +- 0.000584   0.018 s/sample/core   elapsed 4441 s   ETA 3.7 h
+  [p=20 job=2001]     255830 / 1000000   x_thresh = 0.904972 +- 0.000580   0.018 s/sample/core   elapsed 4501 s   ETA 3.6 h
+  [p=20 job=2001]     259167 / 1000000   x_thresh = 0.905011 +- 0.000576   0.018 s/sample/core   elapsed 4561 s   ETA 3.6 h
+  [p=20 job=2001]     262601 / 1000000   x_thresh = 0.904955 +- 0.000572   0.018 s/sample/core   elapsed 4621 s   ETA 3.6 h
+  [p=20 job=2001]     265917 / 1000000   x_thresh = 0.904963 +- 0.000569   0.018 s/sample/core   elapsed 4681 s   ETA 3.6 h
+  [p=20 job=2001]     269280 / 1000000   x_thresh = 0.904958 +- 0.000565   0.018 s/sample/core   elapsed 4741 s   ETA 3.6 h
+  [p=20 job=2001]     272686 / 1000000   x_thresh = 0.904836 +- 0.000562   0.018 s/sample/core   elapsed 4801 s   ETA 3.6 h
+  [p=20 job=2001]     276077 / 1000000   x_thresh = 0.904929 +- 0.000558   0.018 s/sample/core   elapsed 4861 s   ETA 3.5 h
+  [p=20 job=2001]     279486 / 1000000   x_thresh = 0.904961 +- 0.000555   0.018 s/sample/core   elapsed 4921 s   ETA 3.5 h
+  [p=20 job=2001]     282866 / 1000000   x_thresh = 0.905050 +- 0.000551   0.018 s/sample/core   elapsed 4981 s   ETA 3.5 h
+  [p=20 job=2001]     286258 / 1000000   x_thresh = 0.905159 +- 0.000548   0.018 s/sample/core   elapsed 5041 s   ETA 3.5 h
+  [p=20 job=2001]     289662 / 1000000   x_thresh = 0.905138 +- 0.000544   0.018 s/sample/core   elapsed 5101 s   ETA 3.5 h
+  [p=20 job=2001]     293017 / 1000000   x_thresh = 0.905190 +- 0.000541   0.018 s/sample/core   elapsed 5161 s   ETA 3.5 h
+  [p=20 job=2001]     296408 / 1000000   x_thresh = 0.905218 +- 0.000538   0.018 s/sample/core   elapsed 5221 s   ETA 3.4 h
+  [p=20 job=2001]     299820 / 1000000   x_thresh = 0.905276 +- 0.000535   0.018 s/sample/core   elapsed 5281 s   ETA 3.4 h
+  [p=20 job=2001]     303240 / 1000000   x_thresh = 0.905299 +- 0.000532   0.018 s/sample/core   elapsed 5341 s   ETA 3.4 h
+  [p=20 job=2001]     306673 / 1000000   x_thresh = 0.905303 +- 0.000529   0.018 s/sample/core   elapsed 5401 s   ETA 3.4 h
+  [p=20 job=2001]     310122 / 1000000   x_thresh = 0.905363 +- 0.000526   0.018 s/sample/core   elapsed 5461 s   ETA 3.4 h
+  [p=20 job=2001]     313576 / 1000000   x_thresh = 0.905324 +- 0.000523   0.018 s/sample/core   elapsed 5521 s   ETA 3.4 h
+  [p=20 job=2001]     317048 / 1000000   x_thresh = 0.905396 +- 0.000520   0.018 s/sample/core   elapsed 5581 s   ETA 3.3 h
+  [p=20 job=2001]     320503 / 1000000   x_thresh = 0.905411 +- 0.000517   0.018 s/sample/core   elapsed 5641 s   ETA 3.3 h
+  [p=20 job=2001]     323919 / 1000000   x_thresh = 0.905424 +- 0.000514   0.018 s/sample/core   elapsed 5701 s   ETA 3.3 h
+  [p=20 job=2001]     327348 / 1000000   x_thresh = 0.905394 +- 0.000512   0.018 s/sample/core   elapsed 5761 s   ETA 3.3 h
+  [p=20 job=2001]     330947 / 1000000   x_thresh = 0.905399 +- 0.000509   0.018 s/sample/core   elapsed 5821 s   ETA 3.3 h
+  [p=20 job=2001]     334368 / 1000000   x_thresh = 0.905505 +- 0.000506   0.018 s/sample/core   elapsed 5881 s   ETA 3.3 h
+  [p=20 job=2001]     337825 / 1000000   x_thresh = 0.905632 +- 0.000503   0.018 s/sample/core   elapsed 5941 s   ETA 3.2 h
+  [p=20 job=2001]     341161 / 1000000   x_thresh = 0.905672 +- 0.000500   0.018 s/sample/core   elapsed 6001 s   ETA 3.2 h
+  [p=20 job=2001]     344489 / 1000000   x_thresh = 0.905727 +- 0.000498   0.018 s/sample/core   elapsed 6061 s   ETA 3.2 h
+  [p=20 job=2001]     347832 / 1000000   x_thresh = 0.905727 +- 0.000495   0.018 s/sample/core   elapsed 6121 s   ETA 3.2 h
+  [p=20 job=2001]     351274 / 1000000   x_thresh = 0.905695 +- 0.000493   0.018 s/sample/core   elapsed 6181 s   ETA 3.2 h
+  [p=20 job=2001]     354587 / 1000000   x_thresh = 0.905727 +- 0.000491   0.018 s/sample/core   elapsed 6241 s   ETA 3.2 h
+  [p=20 job=2001]     357929 / 1000000   x_thresh = 0.905741 +- 0.000488   0.018 s/sample/core   elapsed 6301 s   ETA 3.1 h
+  [p=20 job=2001]     361339 / 1000000   x_thresh = 0.905751 +- 0.000486   0.018 s/sample/core   elapsed 6361 s   ETA 3.1 h
+  [p=20 job=2001]     364777 / 1000000   x_thresh = 0.905770 +- 0.000484   0.018 s/sample/core   elapsed 6421 s   ETA 3.1 h
+  [p=20 job=2001]     368257 / 1000000   x_thresh = 0.905789 +- 0.000481   0.018 s/sample/core   elapsed 6481 s   ETA 3.1 h
+  [p=20 job=2001]     371627 / 1000000   x_thresh = 0.905774 +- 0.000479   0.018 s/sample/core   elapsed 6541 s   ETA 3.1 h
+  [p=20 job=2001]     375215 / 1000000   x_thresh = 0.905766 +- 0.000477   0.018 s/sample/core   elapsed 6601 s   ETA 3.1 h
+  [p=20 job=2001]     378840 / 1000000   x_thresh = 0.905754 +- 0.000475   0.018 s/sample/core   elapsed 6661 s   ETA 3.0 h
+  [p=20 job=2001]     382106 / 1000000   x_thresh = 0.905712 +- 0.000473   0.018 s/sample/core   elapsed 6721 s   ETA 3.0 h
+  [p=20 job=2001]     385499 / 1000000   x_thresh = 0.905673 +- 0.000471   0.018 s/sample/core   elapsed 6781 s   ETA 3.0 h
+  [p=20 job=2001]     388890 / 1000000   x_thresh = 0.905588 +- 0.000469   0.018 s/sample/core   elapsed 6841 s   ETA 3.0 h
+  [p=20 job=2001]     392406 / 1000000   x_thresh = 0.905560 +- 0.000467   0.018 s/sample/core   elapsed 6901 s   ETA 3.0 h
+  [p=20 job=2001]     396010 / 1000000   x_thresh = 0.905518 +- 0.000465   0.018 s/sample/core   elapsed 6961 s   ETA 2.9 h
+  [p=20 job=2001]     399347 / 1000000   x_thresh = 0.905506 +- 0.000463   0.018 s/sample/core   elapsed 7021 s   ETA 2.9 h
+  [p=20 job=2001]     402718 / 1000000   x_thresh = 0.905567 +- 0.000461   0.018 s/sample/core   elapsed 7081 s   ETA 2.9 h
+  [p=20 job=2001]     406111 / 1000000   x_thresh = 0.905587 +- 0.000459   0.018 s/sample/core   elapsed 7141 s   ETA 2.9 h
+  [p=20 job=2001]     409553 / 1000000   x_thresh = 0.905624 +- 0.000457   0.018 s/sample/core   elapsed 7201 s   ETA 2.9 h
+  [p=20 job=2001]     413178 / 1000000   x_thresh = 0.905665 +- 0.000455   0.018 s/sample/core   elapsed 7261 s   ETA 2.9 h
+  [p=20 job=2001]     416734 / 1000000   x_thresh = 0.905652 +- 0.000453   0.018 s/sample/core   elapsed 7321 s   ETA 2.8 h
+  [p=20 job=2001]     419936 / 1000000   x_thresh = 0.905617 +- 0.000451   0.018 s/sample/core   elapsed 7381 s   ETA 2.8 h
+  [p=20 job=2001]     423216 / 1000000   x_thresh = 0.905634 +- 0.000449   0.018 s/sample/core   elapsed 7441 s   ETA 2.8 h
+  [p=20 job=2001]     426594 / 1000000   x_thresh = 0.905662 +- 0.000448   0.018 s/sample/core   elapsed 7501 s   ETA 2.8 h
+  [p=20 job=2001]     429959 / 1000000   x_thresh = 0.905631 +- 0.000446   0.018 s/sample/core   elapsed 7561 s   ETA 2.8 h
+  [p=20 job=2001]     433333 / 1000000   x_thresh = 0.905631 +- 0.000444   0.018 s/sample/core   elapsed 7621 s   ETA 2.8 h
+  [p=20 job=2001]     436765 / 1000000   x_thresh = 0.905574 +- 0.000442   0.018 s/sample/core   elapsed 7681 s   ETA 2.8 h
+  [p=20 job=2001]     440338 / 1000000   x_thresh = 0.905602 +- 0.000441   0.018 s/sample/core   elapsed 7741 s   ETA 2.7 h
+  [p=20 job=2001]     443920 / 1000000   x_thresh = 0.905625 +- 0.000439   0.018 s/sample/core   elapsed 7801 s   ETA 2.7 h
+  [p=20 job=2001]     447488 / 1000000   x_thresh = 0.905665 +- 0.000437   0.018 s/sample/core   elapsed 7861 s   ETA 2.7 h
+  [p=20 job=2001]     451062 / 1000000   x_thresh = 0.905683 +- 0.000435   0.018 s/sample/core   elapsed 7921 s   ETA 2.7 h
+  [p=20 job=2001]     454434 / 1000000   x_thresh = 0.905672 +- 0.000434   0.018 s/sample/core   elapsed 7981 s   ETA 2.7 h
+  [p=20 job=2001]     457588 / 1000000   x_thresh = 0.905660 +- 0.000432   0.018 s/sample/core   elapsed 8041 s   ETA 2.6 h
+  [p=20 job=2001]     460687 / 1000000   x_thresh = 0.905654 +- 0.000431   0.018 s/sample/core   elapsed 8101 s   ETA 2.6 h
+  [p=20 job=2001]     463842 / 1000000   x_thresh = 0.905653 +- 0.000429   0.018 s/sample/core   elapsed 8161 s   ETA 2.6 h
+  [p=20 job=2001]     467033 / 1000000   x_thresh = 0.905643 +- 0.000428   0.018 s/sample/core   elapsed 8221 s   ETA 2.6 h
+  [p=20 job=2001]     470387 / 1000000   x_thresh = 0.905635 +- 0.000426   0.018 s/sample/core   elapsed 8281 s   ETA 2.6 h
+  [p=20 job=2001]     473760 / 1000000   x_thresh = 0.905615 +- 0.000425   0.018 s/sample/core   elapsed 8341 s   ETA 2.6 h
+  [p=20 job=2001]     477122 / 1000000   x_thresh = 0.905607 +- 0.000423   0.018 s/sample/core   elapsed 8401 s   ETA 2.6 h
+  [p=20 job=2001]     480553 / 1000000   x_thresh = 0.905592 +- 0.000422   0.018 s/sample/core   elapsed 8461 s   ETA 2.5 h
+  [p=20 job=2001]     484039 / 1000000   x_thresh = 0.905617 +- 0.000420   0.018 s/sample/core   elapsed 8521 s   ETA 2.5 h
+  [p=20 job=2001]     487481 / 1000000   x_thresh = 0.905545 +- 0.000419   0.018 s/sample/core   elapsed 8581 s   ETA 2.5 h
+  [p=20 job=2001]     490783 / 1000000   x_thresh = 0.905541 +- 0.000417   0.018 s/sample/core   elapsed 8641 s   ETA 2.5 h
+  [p=20 job=2001]     494111 / 1000000   x_thresh = 0.905568 +- 0.000416   0.018 s/sample/core   elapsed 8701 s   ETA 2.5 h
+  [p=20 job=2001]     497485 / 1000000   x_thresh = 0.905555 +- 0.000415   0.018 s/sample/core   elapsed 8761 s   ETA 2.5 h
+  [p=20 job=2001]     500925 / 1000000   x_thresh = 0.905527 +- 0.000413   0.018 s/sample/core   elapsed 8821 s   ETA 2.4 h
+  [p=20 job=2001]     504353 / 1000000   x_thresh = 0.905580 +- 0.000412   0.018 s/sample/core   elapsed 8881 s   ETA 2.4 h
+  [p=20 job=2001]     507757 / 1000000   x_thresh = 0.905597 +- 0.000410   0.018 s/sample/core   elapsed 8941 s   ETA 2.4 h
+  [p=20 job=2001]     511162 / 1000000   x_thresh = 0.905525 +- 0.000409   0.018 s/sample/core   elapsed 9001 s   ETA 2.4 h
+  [p=20 job=2001]     514612 / 1000000   x_thresh = 0.905564 +- 0.000408   0.018 s/sample/core   elapsed 9061 s   ETA 2.4 h
+  [p=20 job=2001]     518035 / 1000000   x_thresh = 0.905607 +- 0.000406   0.018 s/sample/core   elapsed 9121 s   ETA 2.4 h
+  [p=20 job=2001]     521488 / 1000000   x_thresh = 0.905586 +- 0.000405   0.018 s/sample/core   elapsed 9181 s   ETA 2.3 h
+  [p=20 job=2001]     524933 / 1000000   x_thresh = 0.905577 +- 0.000404   0.018 s/sample/core   elapsed 9241 s   ETA 2.3 h
+  [p=20 job=2001]     528388 / 1000000   x_thresh = 0.905639 +- 0.000402   0.018 s/sample/core   elapsed 9301 s   ETA 2.3 h
+  [p=20 job=2001]     531836 / 1000000   x_thresh = 0.905676 +- 0.000401   0.018 s/sample/core   elapsed 9361 s   ETA 2.3 h
+  [p=20 job=2001]     535286 / 1000000   x_thresh = 0.905755 +- 0.000399   0.018 s/sample/core   elapsed 9421 s   ETA 2.3 h
+  [p=20 job=2001]     538755 / 1000000   x_thresh = 0.905755 +- 0.000398   0.018 s/sample/core   elapsed 9481 s   ETA 2.3 h
+  [p=20 job=2001]     542216 / 1000000   x_thresh = 0.905809 +- 0.000397   0.018 s/sample/core   elapsed 9541 s   ETA 2.2 h
+  [p=20 job=2001]     545659 / 1000000   x_thresh = 0.905831 +- 0.000395   0.018 s/sample/core   elapsed 9601 s   ETA 2.2 h
+  [p=20 job=2001]     549126 / 1000000   x_thresh = 0.905845 +- 0.000394   0.018 s/sample/core   elapsed 9661 s   ETA 2.2 h
+  [p=20 job=2001]     552593 / 1000000   x_thresh = 0.905855 +- 0.000393   0.018 s/sample/core   elapsed 9721 s   ETA 2.2 h
+  [p=20 job=2001]     556058 / 1000000   x_thresh = 0.905839 +- 0.000392   0.018 s/sample/core   elapsed 9781 s   ETA 2.2 h
+  [p=20 job=2001]     559648 / 1000000   x_thresh = 0.905850 +- 0.000390   0.018 s/sample/core   elapsed 9841 s   ETA 2.2 h
+  [p=20 job=2001]     563101 / 1000000   x_thresh = 0.905877 +- 0.000389   0.018 s/sample/core   elapsed 9902 s   ETA 2.1 h
+  [p=20 job=2001]     566486 / 1000000   x_thresh = 0.905855 +- 0.000388   0.018 s/sample/core   elapsed 9962 s   ETA 2.1 h
+  [p=20 job=2001]     569806 / 1000000   x_thresh = 0.905852 +- 0.000387   0.018 s/sample/core   elapsed 10022 s   ETA 2.1 h
+  [p=20 job=2001]     572957 / 1000000   x_thresh = 0.905862 +- 0.000386   0.018 s/sample/core   elapsed 10082 s   ETA 2.1 h
+  [p=20 job=2001]     576131 / 1000000   x_thresh = 0.905889 +- 0.000385   0.018 s/sample/core   elapsed 10142 s   ETA 2.1 h
+  [p=20 job=2001]     579337 / 1000000   x_thresh = 0.905884 +- 0.000384   0.018 s/sample/core   elapsed 10202 s   ETA 2.1 h
+  [p=20 job=2001]     582496 / 1000000   x_thresh = 0.905907 +- 0.000383   0.018 s/sample/core   elapsed 10262 s   ETA 2.0 h
+  [p=20 job=2001]     585734 / 1000000   x_thresh = 0.905927 +- 0.000381   0.018 s/sample/core   elapsed 10322 s   ETA 2.0 h
+  [p=20 job=2001]     588942 / 1000000   x_thresh = 0.905921 +- 0.000380   0.018 s/sample/core   elapsed 10382 s   ETA 2.0 h
+  [p=20 job=2001]     592080 / 1000000   x_thresh = 0.905906 +- 0.000379   0.018 s/sample/core   elapsed 10442 s   ETA 2.0 h
+  [p=20 job=2001]     595420 / 1000000   x_thresh = 0.905940 +- 0.000378   0.018 s/sample/core   elapsed 10502 s   ETA 2.0 h
+  [p=20 job=2001]     598916 / 1000000   x_thresh = 0.905930 +- 0.000377   0.018 s/sample/core   elapsed 10562 s   ETA 2.0 h
+  [p=20 job=2001]     602284 / 1000000   x_thresh = 0.905877 +- 0.000376   0.018 s/sample/core   elapsed 10622 s   ETA 1.9 h
+  [p=20 job=2001]     605676 / 1000000   x_thresh = 0.905857 +- 0.000375   0.018 s/sample/core   elapsed 10682 s   ETA 1.9 h
+  [p=20 job=2001]     609044 / 1000000   x_thresh = 0.905813 +- 0.000374   0.018 s/sample/core   elapsed 10742 s   ETA 1.9 h
+  [p=20 job=2001]     612395 / 1000000   x_thresh = 0.905812 +- 0.000373   0.018 s/sample/core   elapsed 10802 s   ETA 1.9 h
+  [p=20 job=2001]     615901 / 1000000   x_thresh = 0.905866 +- 0.000372   0.018 s/sample/core   elapsed 10862 s   ETA 1.9 h
+  [p=20 job=2001]     619268 / 1000000   x_thresh = 0.905865 +- 0.000371   0.018 s/sample/core   elapsed 10922 s   ETA 1.9 h
+  [p=20 job=2001]     622797 / 1000000   x_thresh = 0.905815 +- 0.000370   0.018 s/sample/core   elapsed 10982 s   ETA 1.8 h
+  [p=20 job=2001]     626104 / 1000000   x_thresh = 0.905762 +- 0.000369   0.018 s/sample/core   elapsed 11042 s   ETA 1.8 h
+  [p=20 job=2001]     629472 / 1000000   x_thresh = 0.905773 +- 0.000368   0.018 s/sample/core   elapsed 11102 s   ETA 1.8 h
+  [p=20 job=2001]     632883 / 1000000   x_thresh = 0.905769 +- 0.000367   0.018 s/sample/core   elapsed 11162 s   ETA 1.8 h
+  [p=20 job=2001]     636306 / 1000000   x_thresh = 0.905728 +- 0.000366   0.018 s/sample/core   elapsed 11222 s   ETA 1.8 h
+  [p=20 job=2001]     639795 / 1000000   x_thresh = 0.905704 +- 0.000365   0.018 s/sample/core   elapsed 11282 s   ETA 1.8 h
+  [p=20 job=2001]     643146 / 1000000   x_thresh = 0.905665 +- 0.000364   0.018 s/sample/core   elapsed 11342 s   ETA 1.7 h
+  [p=20 job=2001]     646547 / 1000000   x_thresh = 0.905670 +- 0.000364   0.018 s/sample/core   elapsed 11402 s   ETA 1.7 h
+  [p=20 job=2001]     649942 / 1000000   x_thresh = 0.905638 +- 0.000363   0.018 s/sample/core   elapsed 11462 s   ETA 1.7 h
+  [p=20 job=2001]     653344 / 1000000   x_thresh = 0.905632 +- 0.000362   0.018 s/sample/core   elapsed 11522 s   ETA 1.7 h
+  [p=20 job=2001]     656778 / 1000000   x_thresh = 0.905653 +- 0.000361   0.018 s/sample/core   elapsed 11582 s   ETA 1.7 h
+  [p=20 job=2001]     660186 / 1000000   x_thresh = 0.905651 +- 0.000360   0.018 s/sample/core   elapsed 11642 s   ETA 1.7 h
+  [p=20 job=2001]     663587 / 1000000   x_thresh = 0.905697 +- 0.000359   0.018 s/sample/core   elapsed 11702 s   ETA 1.6 h
+  [p=20 job=2001]     667102 / 1000000   x_thresh = 0.905694 +- 0.000358   0.018 s/sample/core   elapsed 11762 s   ETA 1.6 h
+  [p=20 job=2001]     670514 / 1000000   x_thresh = 0.905707 +- 0.000357   0.018 s/sample/core   elapsed 11822 s   ETA 1.6 h
+  [p=20 job=2001]     673997 / 1000000   x_thresh = 0.905706 +- 0.000356   0.018 s/sample/core   elapsed 11882 s   ETA 1.6 h
+  [p=20 job=2001]     677437 / 1000000   x_thresh = 0.905689 +- 0.000355   0.018 s/sample/core   elapsed 11942 s   ETA 1.6 h
+  [p=20 job=2001]     680862 / 1000000   x_thresh = 0.905722 +- 0.000354   0.018 s/sample/core   elapsed 12002 s   ETA 1.6 h
+  [p=20 job=2001]     684296 / 1000000   x_thresh = 0.905706 +- 0.000353   0.018 s/sample/core   elapsed 12062 s   ETA 1.5 h
+  [p=20 job=2001]     687634 / 1000000   x_thresh = 0.905707 +- 0.000352   0.018 s/sample/core   elapsed 12122 s   ETA 1.5 h
+  [p=20 job=2001]     690965 / 1000000   x_thresh = 0.905729 +- 0.000352   0.018 s/sample/core   elapsed 12182 s   ETA 1.5 h
+  [p=20 job=2001]     694385 / 1000000   x_thresh = 0.905745 +- 0.000351   0.018 s/sample/core   elapsed 12242 s   ETA 1.5 h
+  [p=20 job=2001]     697768 / 1000000   x_thresh = 0.905771 +- 0.000350   0.018 s/sample/core   elapsed 12302 s   ETA 1.5 h
+  [p=20 job=2001]     701263 / 1000000   x_thresh = 0.905811 +- 0.000349   0.018 s/sample/core   elapsed 12362 s   ETA 1.5 h
+  [p=20 job=2001]     704678 / 1000000   x_thresh = 0.905798 +- 0.000348   0.018 s/sample/core   elapsed 12422 s   ETA 1.4 h
+  [p=20 job=2001]     708133 / 1000000   x_thresh = 0.905756 +- 0.000347   0.018 s/sample/core   elapsed 12482 s   ETA 1.4 h
+  [p=20 job=2001]     711516 / 1000000   x_thresh = 0.905717 +- 0.000346   0.018 s/sample/core   elapsed 12542 s   ETA 1.4 h
+  [p=20 job=2001]     714918 / 1000000   x_thresh = 0.905757 +- 0.000346   0.018 s/sample/core   elapsed 12602 s   ETA 1.4 h
+  [p=20 job=2001]     718377 / 1000000   x_thresh = 0.905717 +- 0.000345   0.018 s/sample/core   elapsed 12662 s   ETA 1.4 h
+  [p=20 job=2001]     721888 / 1000000   x_thresh = 0.905710 +- 0.000344   0.018 s/sample/core   elapsed 12722 s   ETA 1.4 h
+  [p=20 job=2001]     725314 / 1000000   x_thresh = 0.905678 +- 0.000343   0.018 s/sample/core   elapsed 12782 s   ETA 1.3 h
+  [p=20 job=2001]     728775 / 1000000   x_thresh = 0.905659 +- 0.000342   0.018 s/sample/core   elapsed 12842 s   ETA 1.3 h
+  [p=20 job=2001]     732107 / 1000000   x_thresh = 0.905639 +- 0.000342   0.018 s/sample/core   elapsed 12902 s   ETA 1.3 h
+  [p=20 job=2001]     735486 / 1000000   x_thresh = 0.905661 +- 0.000341   0.018 s/sample/core   elapsed 12962 s   ETA 1.3 h
+  [p=20 job=2001]     739010 / 1000000   x_thresh = 0.905652 +- 0.000340   0.018 s/sample/core   elapsed 13022 s   ETA 1.3 h
+  [p=20 job=2001]     742452 / 1000000   x_thresh = 0.905613 +- 0.000339   0.018 s/sample/core   elapsed 13082 s   ETA 1.3 h
+  [p=20 job=2001]     745882 / 1000000   x_thresh = 0.905651 +- 0.000338   0.018 s/sample/core   elapsed 13142 s   ETA 1.2 h
+  [p=20 job=2001]     749287 / 1000000   x_thresh = 0.905650 +- 0.000338   0.018 s/sample/core   elapsed 13202 s   ETA 1.2 h
+  [p=20 job=2001]     752686 / 1000000   x_thresh = 0.905665 +- 0.000337   0.018 s/sample/core   elapsed 13262 s   ETA 1.2 h
+  [p=20 job=2001]     756093 / 1000000   x_thresh = 0.905627 +- 0.000336   0.018 s/sample/core   elapsed 13322 s   ETA 1.2 h
+  [p=20 job=2001]     759520 / 1000000   x_thresh = 0.905600 +- 0.000335   0.018 s/sample/core   elapsed 13382 s   ETA 1.2 h
+  [p=20 job=2001]     762956 / 1000000   x_thresh = 0.905639 +- 0.000335   0.018 s/sample/core   elapsed 13442 s   ETA 1.2 h
+  [p=20 job=2001]     766336 / 1000000   x_thresh = 0.905667 +- 0.000334   0.018 s/sample/core   elapsed 13502 s   ETA 1.1 h
+  [p=20 job=2001]     769769 / 1000000   x_thresh = 0.905677 +- 0.000333   0.018 s/sample/core   elapsed 13562 s   ETA 1.1 h
+  [p=20 job=2001]     773171 / 1000000   x_thresh = 0.905721 +- 0.000332   0.018 s/sample/core   elapsed 13622 s   ETA 1.1 h
+  [p=20 job=2001]     776585 / 1000000   x_thresh = 0.905763 +- 0.000332   0.018 s/sample/core   elapsed 13682 s   ETA 1.1 h
+  [p=20 job=2001]     780023 / 1000000   x_thresh = 0.905789 +- 0.000331   0.018 s/sample/core   elapsed 13742 s   ETA 1.1 h
+  [p=20 job=2001]     783487 / 1000000   x_thresh = 0.905821 +- 0.000330   0.018 s/sample/core   elapsed 13802 s   ETA 1.1 h
+  [p=20 job=2001]     786932 / 1000000   x_thresh = 0.905813 +- 0.000329   0.018 s/sample/core   elapsed 13862 s   ETA 1.0 h
+  [p=20 job=2001]     790400 / 1000000   x_thresh = 0.905783 +- 0.000329   0.018 s/sample/core   elapsed 13922 s   ETA 1.0 h
+  [p=20 job=2001]     793877 / 1000000   x_thresh = 0.905757 +- 0.000328   0.018 s/sample/core   elapsed 13982 s   ETA 1.0 h
+  [p=20 job=2001]     797364 / 1000000   x_thresh = 0.905762 +- 0.000327   0.018 s/sample/core   elapsed 14042 s   ETA 1.0 h
+  [p=20 job=2001]     800832 / 1000000   x_thresh = 0.905759 +- 0.000326   0.018 s/sample/core   elapsed 14102 s   ETA 1.0 h
+  [p=20 job=2001]     804326 / 1000000   x_thresh = 0.905765 +- 0.000326   0.018 s/sample/core   elapsed 14162 s   ETA 1.0 h
+  [p=20 job=2001]     807833 / 1000000   x_thresh = 0.905769 +- 0.000325   0.018 s/sample/core   elapsed 14222 s   ETA 0.9 h
+  [p=20 job=2001]     811317 / 1000000   x_thresh = 0.905800 +- 0.000324   0.018 s/sample/core   elapsed 14282 s   ETA 0.9 h
+  [p=20 job=2001]     814875 / 1000000   x_thresh = 0.905765 +- 0.000324   0.018 s/sample/core   elapsed 14342 s   ETA 0.9 h
+  [p=20 job=2001]     818307 / 1000000   x_thresh = 0.905760 +- 0.000323   0.018 s/sample/core   elapsed 14402 s   ETA 0.9 h
+  [p=20 job=2001]     821726 / 1000000   x_thresh = 0.905770 +- 0.000322   0.018 s/sample/core   elapsed 14462 s   ETA 0.9 h
+  [p=20 job=2001]     825128 / 1000000   x_thresh = 0.905784 +- 0.000322   0.018 s/sample/core   elapsed 14522 s   ETA 0.9 h
+  [p=20 job=2001]     828647 / 1000000   x_thresh = 0.905812 +- 0.000321   0.018 s/sample/core   elapsed 14582 s   ETA 0.8 h
+  [p=20 job=2001]     832104 / 1000000   x_thresh = 0.905819 +- 0.000320   0.018 s/sample/core   elapsed 14642 s   ETA 0.8 h
+  [p=20 job=2001]     835561 / 1000000   x_thresh = 0.905811 +- 0.000320   0.018 s/sample/core   elapsed 14702 s   ETA 0.8 h
+  [p=20 job=2001]     839024 / 1000000   x_thresh = 0.905847 +- 0.000319   0.018 s/sample/core   elapsed 14762 s   ETA 0.8 h
+  [p=20 job=2001]     842400 / 1000000   x_thresh = 0.905875 +- 0.000318   0.018 s/sample/core   elapsed 14822 s   ETA 0.8 h
+  [p=20 job=2001]     845829 / 1000000   x_thresh = 0.905883 +- 0.000317   0.018 s/sample/core   elapsed 14882 s   ETA 0.8 h
+  [p=20 job=2001]     849248 / 1000000   x_thresh = 0.905886 +- 0.000317   0.018 s/sample/core   elapsed 14942 s   ETA 0.7 h
+  [p=20 job=2001]     852672 / 1000000   x_thresh = 0.905889 +- 0.000316   0.018 s/sample/core   elapsed 15002 s   ETA 0.7 h
+  [p=20 job=2001]     856053 / 1000000   x_thresh = 0.905895 +- 0.000316   0.018 s/sample/core   elapsed 15062 s   ETA 0.7 h
+  [p=20 job=2001]     859431 / 1000000   x_thresh = 0.905916 +- 0.000315   0.018 s/sample/core   elapsed 15122 s   ETA 0.7 h
+  [p=20 job=2001]     862989 / 1000000   x_thresh = 0.905913 +- 0.000314   0.018 s/sample/core   elapsed 15182 s   ETA 0.7 h
+  [p=20 job=2001]     866379 / 1000000   x_thresh = 0.905892 +- 0.000314   0.018 s/sample/core   elapsed 15242 s   ETA 0.7 h
+  [p=20 job=2001]     869870 / 1000000   x_thresh = 0.905897 +- 0.000313   0.018 s/sample/core   elapsed 15302 s   ETA 0.6 h
+  [p=20 job=2001]     873384 / 1000000   x_thresh = 0.905880 +- 0.000312   0.018 s/sample/core   elapsed 15362 s   ETA 0.6 h
+  [p=20 job=2001]     876834 / 1000000   x_thresh = 0.905917 +- 0.000312   0.018 s/sample/core   elapsed 15422 s   ETA 0.6 h
+  [p=20 job=2001]     880303 / 1000000   x_thresh = 0.905887 +- 0.000311   0.018 s/sample/core   elapsed 15482 s   ETA 0.6 h
+  [p=20 job=2001]     883731 / 1000000   x_thresh = 0.905888 +- 0.000311   0.018 s/sample/core   elapsed 15542 s   ETA 0.6 h
+  [p=20 job=2001]     887104 / 1000000   x_thresh = 0.905885 +- 0.000310   0.018 s/sample/core   elapsed 15602 s   ETA 0.6 h
+  [p=20 job=2001]     890478 / 1000000   x_thresh = 0.905835 +- 0.000309   0.018 s/sample/core   elapsed 15662 s   ETA 0.5 h
+  [p=20 job=2001]     894002 / 1000000   x_thresh = 0.905838 +- 0.000309   0.018 s/sample/core   elapsed 15722 s   ETA 0.5 h
+  [p=20 job=2001]     897436 / 1000000   x_thresh = 0.905834 +- 0.000308   0.018 s/sample/core   elapsed 15782 s   ETA 0.5 h
+  [p=20 job=2001]     900944 / 1000000   x_thresh = 0.905859 +- 0.000308   0.018 s/sample/core   elapsed 15842 s   ETA 0.5 h
+  [p=20 job=2001]     904264 / 1000000   x_thresh = 0.905859 +- 0.000307   0.018 s/sample/core   elapsed 15902 s   ETA 0.5 h
+  [p=20 job=2001]     907709 / 1000000   x_thresh = 0.905873 +- 0.000306   0.018 s/sample/core   elapsed 15962 s   ETA 0.5 h
+  [p=20 job=2001]     911116 / 1000000   x_thresh = 0.905871 +- 0.000306   0.018 s/sample/core   elapsed 16022 s   ETA 0.4 h
+  [p=20 job=2001]     914468 / 1000000   x_thresh = 0.905867 +- 0.000305   0.018 s/sample/core   elapsed 16082 s   ETA 0.4 h
+  [p=20 job=2001]     917935 / 1000000   x_thresh = 0.905891 +- 0.000305   0.018 s/sample/core   elapsed 16142 s   ETA 0.4 h
+  [p=20 job=2001]     921299 / 1000000   x_thresh = 0.905887 +- 0.000304   0.018 s/sample/core   elapsed 16202 s   ETA 0.4 h
+  [p=20 job=2001]     924729 / 1000000   x_thresh = 0.905876 +- 0.000304   0.018 s/sample/core   elapsed 16262 s   ETA 0.4 h
+  [p=20 job=2001]     928151 / 1000000   x_thresh = 0.905892 +- 0.000303   0.018 s/sample/core   elapsed 16322 s   ETA 0.4 h
+  [p=20 job=2001]     931565 / 1000000   x_thresh = 0.905900 +- 0.000303   0.018 s/sample/core   elapsed 16382 s   ETA 0.3 h
+  [p=20 job=2001]     934983 / 1000000   x_thresh = 0.905902 +- 0.000302   0.018 s/sample/core   elapsed 16442 s   ETA 0.3 h
+  [p=20 job=2001]     938444 / 1000000   x_thresh = 0.905906 +- 0.000301   0.018 s/sample/core   elapsed 16503 s   ETA 0.3 h
+  [p=20 job=2001]     941867 / 1000000   x_thresh = 0.905886 +- 0.000301   0.018 s/sample/core   elapsed 16563 s   ETA 0.3 h
+  [p=20 job=2001]     945318 / 1000000   x_thresh = 0.905874 +- 0.000300   0.018 s/sample/core   elapsed 16623 s   ETA 0.3 h
+  [p=20 job=2001]     948828 / 1000000   x_thresh = 0.905859 +- 0.000300   0.018 s/sample/core   elapsed 16683 s   ETA 0.2 h
+  [p=20 job=2001]     952301 / 1000000   x_thresh = 0.905848 +- 0.000299   0.018 s/sample/core   elapsed 16743 s   ETA 0.2 h
+  [p=20 job=2001]     955616 / 1000000   x_thresh = 0.905859 +- 0.000299   0.018 s/sample/core   elapsed 16803 s   ETA 0.2 h
+  [p=20 job=2001]     959119 / 1000000   x_thresh = 0.905870 +- 0.000298   0.018 s/sample/core   elapsed 16863 s   ETA 0.2 h
+  [p=20 job=2001]     962483 / 1000000   x_thresh = 0.905852 +- 0.000298   0.018 s/sample/core   elapsed 16923 s   ETA 0.2 h
+  [p=20 job=2001]     965746 / 1000000   x_thresh = 0.905851 +- 0.000297   0.018 s/sample/core   elapsed 16983 s   ETA 0.2 h
+  [p=20 job=2001]     968980 / 1000000   x_thresh = 0.905869 +- 0.000297   0.018 s/sample/core   elapsed 17043 s   ETA 0.2 h
+  [p=20 job=2001]     972383 / 1000000   x_thresh = 0.905877 +- 0.000296   0.018 s/sample/core   elapsed 17103 s   ETA 0.1 h
+  [p=20 job=2001]     975947 / 1000000   x_thresh = 0.905893 +- 0.000296   0.018 s/sample/core   elapsed 17163 s   ETA 0.1 h
+  [p=20 job=2001]     979552 / 1000000   x_thresh = 0.905885 +- 0.000295   0.018 s/sample/core   elapsed 17223 s   ETA 0.1 h
+  [p=20 job=2001]     983061 / 1000000   x_thresh = 0.905916 +- 0.000294   0.018 s/sample/core   elapsed 17283 s   ETA 0.1 h
+  [p=20 job=2001]     986601 / 1000000   x_thresh = 0.905907 +- 0.000294   0.018 s/sample/core   elapsed 17343 s   ETA 0.1 h
+  [p=20 job=2001]     989985 / 1000000   x_thresh = 0.905904 +- 0.000293   0.018 s/sample/core   elapsed 17403 s   ETA 0.0 h
+  [p=20 job=2001]     993446 / 1000000   x_thresh = 0.905918 +- 0.000293   0.018 s/sample/core   elapsed 17463 s   ETA 0.0 h
+  [p=20 job=2001]     996834 / 1000000   x_thresh = 0.905897 +- 0.000292   0.018 s/sample/core   elapsed 17523 s   ETA 0.0 h
+  [p=20 job=2001]    1000000 / 1000000   x_thresh = 0.905915 +- 0.000292   0.018 s/sample/core   elapsed 17578 s   ETA 0.0 h
+
+DONE  p = 20  job = 2001
+  n_samples   1000000
+  n_cut       905915
+  c_VIRAL(20) = 0.905915  +-  0.000292     (thresholded: this is the bound)
+  x_soft      0.896579                 (diagnostic only)
+  elapsed     17578 s wall (all runs), 0.0176 s/sample/core
+  written to  /home/fm2452/projects/flaviano_quantum/results/torch-p20-extension-v2/jobs/viral_tree_p20_job2001.txt

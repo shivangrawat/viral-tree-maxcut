@@ -1559,3 +1559,21 @@ viral_tree_hpc : VIRAL on the 3-regular tree, MaxCut
   [p=30 job=109]       1977 / 2000   x_thresh = 0.905412 +- 0.006582   59.976 s/sample/core   elapsed 118573 s   ETA 0.4 h
   [p=30 job=109]       1979 / 2000   x_thresh = 0.905003 +- 0.006591   59.975 s/sample/core   elapsed 118690 s   ETA 0.3 h
   [p=30 job=109]       1981 / 2000   x_thresh = 0.905098 +- 0.006585   59.973 s/sample/core   elapsed 118807 s   ETA 0.3 h
+  [p=30 job=109]       1983 / 2000   x_thresh = 0.904186 +- 0.006610   59.972 s/sample/core   elapsed 118924 s   ETA 0.3 h
+  [p=30 job=109]       1985 / 2000   x_thresh = 0.904282 +- 0.006603   59.970 s/sample/core   elapsed 119041 s   ETA 0.2 h
+  [p=30 job=109]       1987 / 2000   x_thresh = 0.904378 +- 0.006597   59.969 s/sample/core   elapsed 119158 s   ETA 0.2 h
+  [p=30 job=109]       1989 / 2000   x_thresh = 0.903972 +- 0.006606   59.968 s/sample/core   elapsed 119276 s   ETA 0.2 h
+  [p=30 job=109]       1991 / 2000   x_thresh = 0.904068 +- 0.006600   59.966 s/sample/core   elapsed 119393 s   ETA 0.1 h
+  [p=30 job=109]       1993 / 2000   x_thresh = 0.904165 +- 0.006594   59.965 s/sample/core   elapsed 119510 s   ETA 0.1 h
+  [p=30 job=109]       1995 / 2000   x_thresh = 0.904261 +- 0.006587   59.964 s/sample/core   elapsed 119628 s   ETA 0.1 h
+  [p=30 job=109]       1997 / 2000   x_thresh = 0.904357 +- 0.006581   59.961 s/sample/core   elapsed 119743 s   ETA 0.0 h
+  [p=30 job=109]       1999 / 2000   x_thresh = 0.904452 +- 0.006575   59.959 s/sample/core   elapsed 119859 s   ETA 0.0 h
+  [p=30 job=109]       2000 / 2000   x_thresh = 0.904500 +- 0.006572   59.958 s/sample/core   elapsed 119917 s   ETA 0.0 h
+
+DONE  p = 30  job = 109
+  n_samples   2000
+  n_cut       1809
+  c_VIRAL(30) = 0.904500  +-  0.006572     (thresholded: this is the bound)
+  x_soft      0.899032                 (diagnostic only)
+  elapsed     119917 s wall (all runs), 59.9583 s/sample/core
+  written to  /home/fm2452/projects/flaviano_quantum/results/torch-p30-million-v1/jobs/viral_tree_p30_job109.txt

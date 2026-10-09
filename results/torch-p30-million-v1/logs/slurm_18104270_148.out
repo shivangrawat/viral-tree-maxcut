@@ -1121,3 +1121,13 @@ viral_tree_hpc : VIRAL on the 3-regular tree, MaxCut
   [p=30 job=148]       1992 / 2000   x_thresh = 0.921687 +- 0.006020   56.454 s/sample/core   elapsed 112456 s   ETA 0.1 h
   [p=30 job=148]       1994 / 2000   x_thresh = 0.921765 +- 0.006014   56.451 s/sample/core   elapsed 112564 s   ETA 0.1 h
   [p=30 job=148]       1996 / 2000   x_thresh = 0.921844 +- 0.006008   56.449 s/sample/core   elapsed 112673 s   ETA 0.1 h
+  [p=30 job=148]       1998 / 2000   x_thresh = 0.921922 +- 0.006002   56.447 s/sample/core   elapsed 112781 s   ETA 0.0 h
+  [p=30 job=148]       2000 / 2000   x_thresh = 0.922000 +- 0.005996   56.445 s/sample/core   elapsed 112890 s   ETA 0.0 h
+
+DONE  p = 30  job = 148
+  n_samples   2000
+  n_cut       1844
+  c_VIRAL(30) = 0.922000  +-  0.005996     (thresholded: this is the bound)
+  x_soft      0.915587                 (diagnostic only)
+  elapsed     112890 s wall (all runs), 56.4449 s/sample/core
+  written to  /home/fm2452/projects/flaviano_quantum/results/torch-p30-million-v1/jobs/viral_tree_p30_job148.txt
