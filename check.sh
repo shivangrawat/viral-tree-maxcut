@@ -1,5 +1,10 @@
 #!/bin/bash
-# check.sh -- self-tests for viral_tree_hpc.   Run:  make check
+# check.sh -- self-tests for a VIRAL solver binary.
+#
+#   ./check.sh [BINARY]      BINARY defaults to ./viral_tree_hpc
+#   make check               runs it on viral_tree_hpc, viral_tree_fast and viral_tree_fast2
+#
+# Threads for the multi-threaded runs: OMP_NUM_THREADS (default 4).
 #
 # 1. p=2 : Monte Carlo vs the EXACT value from enumerating all 2^14 seed
 #          configurations (exact_small_p.py; hard-coded here so that numpy is
@@ -12,8 +17,11 @@
 # 4. resume/extension: p=8 job 5, 10000 then extended to 30000, must equal a
 #    fresh 30000-sample run.
 set -u
+# A relative BINARY is relative to the caller's directory: resolve it before the cd.
+BIN=${1:-}
+case $BIN in ""|/*) ;; *) BIN=$PWD/$BIN ;; esac
 cd "$(dirname "$0")"
-BIN=./viral_tree_hpc
+BIN=${BIN:-./viral_tree_hpc}
 T=check_tmp
 rm -rf $T && mkdir -p $T/a $T/b $T/c $T/d $T/e
 NT=${OMP_NUM_THREADS:-4}
