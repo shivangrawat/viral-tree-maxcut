@@ -1,5 +1,6 @@
 /*
- * seed_audit.c - gate G1 of scripts/SUBMIT_4M.md.
+ * seed_audit.c - seed-uniqueness audit of the campaigns (gates G1 and G1',
+ * docs/validation.md; run by scripts/validation/seed_audit*.slurm).
  *
  * Reads lines "p first_job n_jobs samples_per_job" (one per campaign) from
  * stdin, computes for EVERY sample S = job*2^32 + k of every campaign the
@@ -9,6 +10,13 @@
  * samples with distinct states draw distinct seed bits, i.e. are different
  * samples.  Exit 0 and "SEED AUDIT PASS" if all states are distinct.
  *
+ * Only the first two of the four state words are compared (16 bytes per
+ * sample instead of 32).  That is conservative: if no two samples share
+ * those 128 bits, no two share the whole state.
+ *
+ * Memory: 32 bytes per sample (one Entry), plus as much again for glibc
+ * qsort's merge buffer: 2 x 5.1 GB for the 160M samples of the 10M campaigns.
+ *
  *     gcc -O2 -o seed_audit tests/seed_audit.c && ./seed_audit < spec.txt
  */
 #include <inttypes.h>
@@ -17,9 +25,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct { uint64_t s[4]; } Rng;
+typedef struct { uint64_t s[4]; } Rng;     /* xoshiro256** state */
 
-/* ---- verbatim from viral_tree_hpc.c ---- */
+/* ---- verbatim from viral_tree_hpc.c (see the comments there) ---- */
+
+/* mix64 -- splitmix64 finalizer, a bijective hash of 64-bit words. */
 static inline uint64_t mix64(uint64_t z) {
     z += 0x9e3779b97f4a7c15ULL;
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
@@ -27,6 +37,8 @@ static inline uint64_t mix64(uint64_t z) {
     return z ^ (z >> 31);
 }
 
+/* rng_seed -- xoshiro256** state from one 64-bit seed: four consecutive
+ * splitmix64 outputs starting at seed.                                     */
 static Rng rng_seed(uint64_t seed) {
     Rng r;
     for (int i = 0; i < 4; i++) {
@@ -39,13 +51,17 @@ static Rng rng_seed(uint64_t seed) {
     return r;
 }
 
+/* sample_rng -- initial state of the sample with global index
+ * S = job * 2^32 + k at depth p.                                            */
 static inline Rng sample_rng(int p, uint64_t S) {
     return rng_seed(mix64(0x5DEECE66DULL ^ ((uint64_t)p << 32) ^ mix64(S)));
 }
-/* ---------------------------------------- */
+/* ------------------------------------------------------------------ */
 
+/* one sample: the first two words of its initial state, and where it is from */
 typedef struct { uint64_t a, b; uint32_t p, job, k; } Entry;
 
+/* cmp -- qsort order of entries: by state word a, then b. */
 static int cmp(const void *x, const void *y) {
     const Entry *u = x, *v = y;
     if (u->a != v->a) return u->a < v->a ? -1 : 1;
@@ -53,6 +69,9 @@ static int cmp(const void *x, const void *y) {
     return 0;
 }
 
+/* main -- read up to 256 spec lines, enumerate every sample state, sort the
+ * states and report duplicates (at most 20 printed).  Exit 0 if none, 1 if
+ * there are duplicates, 2 on a bad spec line or when out of memory.        */
 int main(void) {
     int p; long first, njobs, per;
     size_t cap = 0, n = 0;

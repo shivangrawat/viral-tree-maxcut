@@ -33,7 +33,11 @@ module purge 2>/dev/null
 echo "host $(hostname)   partition ${SLURM_JOB_PARTITION:-?}   cpus ${SLURM_CPUS_PER_TASK:-?}   job $TAG"
 fail() { echo "GATE FAIL: $*"; exit 1; }
 
-[ "$(sha256sum viral_tree_fast2.c | cut -d' ' -f1)" = "$SOURCE_SHA" ] || fail "source is not the validated viral_tree_fast2.c"
+# The source must be the validated one or its comment-only documented copy
+# (scripts/viral_campaign.py DOCUMENTED_SOURCE_SHA256, tests/check_sources.sh).
+SRC_SHA=$(sha256sum viral_tree_fast2.c | cut -d' ' -f1)
+python3 -c 'import sys; sys.path.insert(0, "scripts"); import viral_campaign as vc; sys.exit(vc.campaign_source_sha(sys.argv[1]) != sys.argv[2])' \
+    "$SRC_SHA" "$SOURCE_SHA" || fail "source is not the validated viral_tree_fast2.c"
 CMD=(/usr/bin/gcc -Wall -Wextra -DBATCH_MAX_PER_THREAD=1 -O3 -ffp-contract=off -fopenmp
      "$REPO/viral_tree_fast2.c" -lm -o "$RUN/viral_fast2")
 "${CMD[@]}" || fail "compile failed"
@@ -42,7 +46,7 @@ echo "built $SHA"
 [ "$SHA" = "$VALIDATED_EXE_SHA" ] || fail "build differs from the validated executable"
 
 mkdir -p "$EXPORT" && cp -p "$RUN/viral_fast2" "$EXPORT/viral_fast2" || fail "export failed"
-python3 - "$EXPORT/viral_fast2" "$SHA" "$SOURCE_SHA" "$(gcc --version | head -1)" "$(hostname)" "${CMD[*]}" <<'PYEOF' || fail "sidecar"
+python3 - "$EXPORT/viral_fast2" "$SHA" "$SRC_SHA" "$(gcc --version | head -1)" "$(hostname)" "${CMD[*]}" <<'PYEOF' || fail "sidecar"
 import json, platform, sys
 from datetime import datetime, timezone
 exe, sha, src, ver, host, cmd = sys.argv[1:7]

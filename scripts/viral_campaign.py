@@ -13,6 +13,17 @@ from datetime import datetime, timezone
 
 
 SOURCE_SHA256 = "b3af7c651c2271f594d347807175c9bea602e2a65d712914eadf9fa9f3766d51"
+# The solver sources of the campaigns (tag results-10M) were later documented
+# with comment-only edits.  Each documented file maps to the campaign source
+# it compiles like; tests/check_sources.sh proves the equivalence.
+DOCUMENTED_SOURCE_SHA256 = {
+    "b18dab868846b23b43662aed1b2c462ac20557e9aa95fb3168652f31494280f2":    # viral_tree_hpc.c
+        "b3af7c651c2271f594d347807175c9bea602e2a65d712914eadf9fa9f3766d51",
+    "178539f113c5a0fecc59c8711732ed45385097028f0ae3bdbca27809a6d5eed8":    # viral_tree_fast.c
+        "f1efdb7dd443bef0a043791a5232678c9659bb2c3be6fab6c959698541b034f8",
+    "7abb4e08eae5413fb524556ef2ee9a182aaa842677520e71c50e36020f07d803":    # viral_tree_fast2.c
+        "8b12711a2b6f15e652a7677c43b80aa6715570ffd28b38d9ec4afdab97251988",
+}
 VOLATILE = {b"elapsed_s", b"core_seconds", b"sec_per_sample_core", b"host"}
 FIELDS = set(b"status p job n_target n_done n_cut soft_sum x_thresh stderr x_soft "
              b"elapsed_s core_seconds threads sec_per_sample_core host angles_file "
@@ -51,10 +62,15 @@ def scientific_bytes(data):
                     if not line.split() or line.split()[0] not in VOLATILE)
 
 
+def campaign_source_sha(sha):
+    """Campaign source hash of a source file hash; documented copies map to their campaign source."""
+    return DOCUMENTED_SOURCE_SHA256.get(sha, sha)
+
+
 def build_info(executable):
     executable = Path(executable).resolve()
     info = json.loads(Path(str(executable) + ".build.json").read_text())
-    if info["source_sha256"] != SOURCE_SHA256:
+    if campaign_source_sha(info["source_sha256"]) != SOURCE_SHA256:
         raise ValueError("build used a different protected source")
     if info["executable_sha256"] != sha256(executable):
         raise ValueError("executable differs from its build sidecar")

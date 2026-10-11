@@ -41,8 +41,9 @@ PROFILES = {
 
 
 def source_guard(path=SOURCE):
+    """Refuse to test a viral_tree_hpc.c that is neither the campaign source nor its documented copy."""
     actual = campaign.sha256(path)
-    if actual != SOURCE_SHA256:
+    if campaign.campaign_source_sha(actual) != SOURCE_SHA256:
         raise ValueError("Protected source changed: expected %s, found %s" % (SOURCE_SHA256, actual))
 
 
@@ -90,7 +91,7 @@ def compile_build(args, work, profile):
         capture(["install_name_tool", "-change", install_id, dylib, exe])
         capture(["codesign", "--force", "--sign", "-", exe])
     linkage = capture((["otool", "-L"] if sys.platform == "darwin" else ["ldd"]) + [exe])
-    info = dict(profile=profile, source_sha256=SOURCE_SHA256, executable_sha256=campaign.sha256(exe),
+    info = dict(profile=profile, source_sha256=campaign.sha256(SOURCE), executable_sha256=campaign.sha256(exe),
                 compiler=args.cc, compiler_version=capture([args.cc, "--version"]).strip(),
                 compile_command=[str(x) for x in command], flags=flags, runtime_linkage=linkage,
                 system=platform.system(), machine=platform.machine(), platform=platform.platform(),
@@ -391,7 +392,7 @@ def main():
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(ComparatorTests)
     if not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful():
         return 1
-    report = dict(source_sha256=SOURCE_SHA256, platform=platform.platform(),
+    report = dict(source_sha256=campaign.sha256(SOURCE), platform=platform.platform(),
                   created_utc=datetime.now(timezone.utc).isoformat(), profiles={},
                   baseline="-O3 -DBATCH_MAX_PER_THREAD=1; OMP_NUM_THREADS=1",
                   compared_bytes="entire dumps and result bytes except elapsed_s, core_seconds, sec_per_sample_core, host")

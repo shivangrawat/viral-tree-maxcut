@@ -9,8 +9,13 @@
  *
  *  Self-contained: one C file, OpenMP, libm.  No other dependencies.
  *
- *      compile :  gcc -O3 -fopenmp viral_tree_hpc.c -o viral_tree_hpc -lm      (or: make)
- *      run     :  OMP_NUM_THREADS=16 ./viral_tree_hpc <p> <n_samples> [job_id] [angles_file] [out_dir]
+ *      compile :  gcc -Wall -Wextra -DBATCH_MAX_PER_THREAD=1 -O3 -fopenmp viral_tree_hpc.c -lm -o viral_tree_hpc
+ *                 (or: make; these are the flags of the campaign builds, see section 5)
+ *      run     :  OMP_NUM_THREADS=1 ./viral_tree_hpc <p> <n_samples> [job_id] [angles_file] [out_dir]
+ *
+ *  This is the reference solver.  viral_tree_fast.c and viral_tree_fast2.c
+ *  compute the same samples, bit for bit, in less time and memory; the
+ *  published results combine runs of all three (README.md, docs/solvers.md).
  *
  *  A full description of the problem, the algorithm, the code, the resource
  *  requirements and the output format follows.  Please read at least
@@ -42,8 +47,10 @@
  *  depth p = 17 (Farhi, Gutmann, Ranard, Villalonga, arXiv:2503.12789).
  *
  *  Goal of this computation: evaluate c_VIRAL(p) for large p as precisely as
- *  possible.  A value above 0.912 with a statistically decisive error bar
- *  would be a new record lower bound on lim M_g.
+ *  possible.  A value above 0.912 with a statistically decisive error bar is
+ *  a new record lower bound on lim M_g.  Result (10^7 samples per depth,
+ *  results/merge_10M.txt): at p = 32, i.e. for girth >= 66, the one-sided
+ *  99.99999% lower confidence bound on c_VIRAL(32) is 0.91271 > 0.912.
  *
  * ----------------------------------------------------------------------------
  *  2. THE ALGORITHM (VIRAL) AND WHY ITS TREE VALUE IS A BOUND
@@ -90,8 +97,8 @@
  *  The angles.  Any fixed choice of angles gives a valid bound.  The files
  *  in params/ contain angles that were trained (by gradient descent) on
  *  random 3-regular graphs with 10^6 vertices; they are the ones used for
- *  all results so far.  They are not optimal for the tree, so every
- *  c_VIRAL(p) obtained with them is a conservative bound.
+ *  all results in this repository.  They are not optimal for the tree, so
+ *  every c_VIRAL(p) obtained with them is a conservative bound.
  *
  * ----------------------------------------------------------------------------
  *  3. WHAT THE PROGRAM COMPUTES, AND THE ERROR BAR
@@ -119,9 +126,10 @@
  *
  *  Statistics is the binding constraint, not depth: the variance of X is
  *  at most 1/4, so the error bar is ~0.5/sqrt(n) whatever p is, while the
- *  cost of one sample grows like 2^p.  Reaching an error bar of 2.4e-4
- *  (what is needed to separate 0.9127 from 0.912 at 99.9%) takes about
- *  1.4 million samples.
+ *  cost of one sample grows like 2^p.  The published runs use n = 10^7
+ *  samples per depth (error bar ~9e-5 at x ~ 0.91) and quote the exact
+ *  one-sided 99.99999% Clopper-Pearson bound, floored to 5 decimals
+ *  (merge_results.py --table).
  *
  * ----------------------------------------------------------------------------
  *  4. HOW THE CODE WORKS
@@ -173,11 +181,15 @@
  *      (threads) x (the above).  Set OMP_NUM_THREADS accordingly.
  *
  *  4.5 Random numbers.  Each sample has its own xoshiro256** stream, seeded
- *      from a splitmix64 hash of its GLOBAL SAMPLE INDEX
- *          S = job_id * 2^32 + k,        k = 0 .. n_samples-1.
- *      Consequences:
- *        - the result is bit-for-bit reproducible and independent of the
- *          number of threads and of how the run was split or restarted;
+ *      from a splitmix64 hash of the depth p and of its GLOBAL SAMPLE INDEX
+ *          S = job_id * 2^32 + k,        k = 0 .. n_samples-1
+ *      (sample_rng below; p is mixed in, so equal S at different depths give
+ *      unrelated samples).  Consequences:
+ *        - every sample (its cut bit, s_u^z and s_v^z) is bit-for-bit
+ *          reproducible, so n_cut is independent of the number of threads and
+ *          of how the run was split or restarted.  soft_sum, a floating-point
+ *          sum, can change in its last digits when the order of the
+ *          additions changes (threads, batch size; see 4.6);
  *        - different job_ids use disjoint index ranges automatically, so
  *          many jobs (e.g. a SLURM array) can run in parallel and their
  *          counts can simply be added;
@@ -189,8 +201,10 @@
  *  4.6 Parallelism.  Samples are independent and all cost the same, so
  *      OpenMP parallelizes over samples with a static schedule; nothing is
  *      parallel inside a sample.  Samples are processed in batches; the
- *      batch size adapts so that a batch takes ~20 s (it does not affect
- *      the result).
+ *      batch size adapts so that a batch takes ~20 s.  Neither affects
+ *      n_cut; both set the order in which soft_sum is added up.  The
+ *      campaign builds use -DBATCH_MAX_PER_THREAD=1 and run one thread per
+ *      job, so every batch is one sample and the order is fixed.
  *
  *  4.7 Checkpoint / restart.  The output file
  *          <out_dir>/viral_tree_p<p>_job<job>.txt
@@ -198,9 +212,10 @@
  *      a minute and at the end.  It holds n_done, n_cut and soft_sum.  If it
  *      exists when the program starts, the run RESUMES from n_done, after
  *      checking that p, job_id and the angles file (by hash) are the same.
- *      A run killed mid-batch redoes that batch: nothing is lost or double
- *      counted.  Running with a larger n_samples than a finished job
- *      extends it; running with a smaller one is refused.
+ *      A run killed without warning resumes from its last checkpoint: the
+ *      samples after it are computed again, none is counted twice.  Running
+ *      with a larger n_samples than a finished job extends it; running with
+ *      a smaller one is refused.
  *
  *  4.8 Signals.  SIGTERM, SIGINT and SIGUSR1 make the program finish the
  *      current batch, write the file with status "running", and exit(0).
@@ -212,63 +227,49 @@
  *  5. COMPILING, RUNNING, RESOURCES
  * ----------------------------------------------------------------------------
  *
- *  Compile (GCC >= 4.9, clang, or any OpenMP-capable C99 compiler):
+ *  Compile with the flags of the campaign builds (or: make):
  *
- *      gcc -O3 -fopenmp viral_tree_hpc.c -o viral_tree_hpc -lm        (or:  make)
+ *      gcc -Wall -Wextra -DBATCH_MAX_PER_THREAD=1 -O3 -fopenmp viral_tree_hpc.c -lm -o viral_tree_hpc
  *
- *  No CPU-specific flags are needed: the run time is dominated by sin/cos
- *  from libm, and -march=native was measured to change neither speed nor
- *  results.  A binary built on a login node therefore runs on any compute
- *  node of the same architecture.
+ *  Any OpenMP-capable C99 compiler works.  The campaigns used gcc 14.3.1 on
+ *  RHEL 10, whose default target x86-64-v3 has FMA: gcc fuses the cos/sin
+ *  pair of rz() into one sincos() call and the multiply-adds of rz() and
+ *  rx_cs() into fused multiply-adds.  The last bits of every sample depend
+ *  on that fusion, so reproducing the campaign samples bit for bit needs the
+ *  same toolchain (gcc 14.3.1 targeting x86-64-v3, glibc).  Elsewhere the
+ *  samples differ in the last bits only, which moves n_cut by O(1) in 10^6
+ *  (section 7).  viral_tree_fast.c and viral_tree_fast2.c spell the fusion
+ *  out with fma() and do not depend on the compiler's choice.
+ *  -DBATCH_MAX_PER_THREAD=1 fixes the order of the soft_sum additions
+ *  (section 4.6); it does not change n_cut.
  *
  *  Run:
  *
  *      export OMP_NUM_THREADS=<threads>
  *      ./viral_tree_hpc <p> <n_samples> [job_id=0] [angles_file] [out_dir=.]
  *
- *      p            depth, an even number for which params/angles_p<p>.txt exists
+ *      p            depth, 1..40; params/ has angles for even p = 2..100
  *      n_samples    samples for THIS job (1 .. 4294967295)
- *      job_id       integer >= 0; different jobs are independent (section 4.5)
+ *      job_id       integer 0..2147483647; different jobs are independent (section 4.5)
  *      angles_file  default  params/angles_p<p>.txt   (relative to the cwd)
  *      out_dir      default  .  (must exist)
  *
- *  Resources.  Measured with this code on an Intel i9-10900X (3.7 GHz),
- *  GCC 9.4, -O3:
+ *  Resources.  Memory is 56.5 * 2^p bytes per thread (section 4.4): 0.88 GB
+ *  at p = 24, 3.5 GB at p = 26, 14 GB at p = 28, 56.5 GB at p = 30.  The
+ *  program prints its need at start-up and touches all of it at once, so a
+ *  job that does not fit fails within seconds, not hours.  Time per sample
+ *  roughly quadruples per step of 2 in p; measured on the cluster with one
+ *  thread per job: 1.1 core-seconds per sample at p = 24, 3.9 at p = 26,
+ *  15 at p = 28 and 73 at p = 30.  The faster solvers need far less of both
+ *  (docs/solvers.md); README.md lists the resources of the campaigns.
  *
- *      p     time / sample / core     memory / thread     4*2^p vertices
- *      22          0.31 s  (measured)      0.22 GB          1.7e7
- *      24          1.34 s  (measured)      0.88 GB          6.7e7
- *      26          4.3  s  (measured)      3.53 GB          2.7e8
- *      28        ~15    s  (extrapolated) 14.1  GB          1.1e9
- *      30        ~60    s  (extrapolated) 56.5  GB          4.3e9
+ *  Many jobs.  Give every job its own job_id (section 4.5) and add the
+ *  results with merge_results.py.  scripts/run_array.slurm runs one job per
+ *  task of a SLURM array; the published campaigns used the launchers in
+ *  scripts/ (docs/campaigns.md).  When the wall-time limit stops a job,
+ *  resubmit the identical command: every job resumes.  Then
  *
- *  Memory doubles per unit of p exactly; time grows by a factor 2 to 3 per
- *  unit of p (memory traffic starts to matter above the cache sizes).
- *  Error bar after n samples ~ 0.29/sqrt(n) (at x ~ 0.91):
- *      n = 1e5 -> 9e-4,   n = 4e5 -> 4.5e-4,   n = 1.4e6 -> 2.4e-4.
- *  Core-hours for 1e6 samples: p=24 ~360, p=26 ~1200, p=28 ~4700, p=30 ~19000.
- *
- *  Choosing threads per job.  Threads x (memory/thread) must fit in the
- *  job's memory allocation with ~1 GB spare.  The program prints its
- *  estimate at start-up and touches all its memory immediately, so a job
- *  that is going to run out of memory fails within seconds, not hours.
- *
- *  SLURM job arrays (ready to use: submit_p24.slurm ... submit_p30.slurm,
- *  one per depth, 1e6 samples each; see README.md).  The essence of each:
- *
- *      #SBATCH --array=0-99               # 100 independent jobs
- *      #SBATCH --cpus-per-task=16
- *      #SBATCH --mem=60G                  # >= 16 x 3.53 GB + 1 GB  (p = 26)
- *      #SBATCH --time=04:00:00
- *      #SBATCH --signal=B:TERM@600        # clean stop 10 min before the limit
- *      #SBATCH --output=results/slurm_p26_%a.out
- *      export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
- *      exec ./viral_tree_hpc 26 10000 $SLURM_ARRAY_TASK_ID params/angles_p26.txt results
- *
- *  100 jobs x 10000 samples = 1e6 samples.  If the wall-time limit stops the
- *  jobs, resubmit the identical script: every task resumes.  Then
- *
- *      python3 merge_results.py results
+ *      python3 merge_results.py <directories with result files> [-p P]
  *
  *  adds up all jobs (of every p present) and prints the estimates with exact
  *  confidence bounds.
@@ -283,8 +284,9 @@
  *      p, job, n_target, n_done, n_cut       integers
  *      soft_sum     sum over samples of s_u^z * s_v^z   (17 significant digits)
  *      x_thresh, stderr, x_soft              derived, for reading by eye
- *      elapsed_s    wall-clock seconds accumulated over all (re)starts
- *      core_seconds elapsed_s x threads, accumulated (cost of the job)
+ *      elapsed_s    wall-clock seconds of the sampling loop, accumulated over
+ *                   all (re)starts (start-up and memory touching excluded)
+ *      core_seconds those seconds x threads, accumulated (cost of the job)
  *      threads, sec_per_sample_core, host    timing information
  *      angles_file, angles_hash, alpha       provenance
  *
@@ -302,14 +304,16 @@
  *  ~1e-15 of zero, i.e. changes n_cut by O(1) in a million.  Harmless, but
  *  do not expect bit-identical n_cut between different machines.
  *
- *  Validation performed before release (see README.md and check.sh):
- *    - per-sample output bit-identical to the original two-buffer code
- *      (viral_tree.c, used for all published points) for p = 1..20;
+ *  Validation performed before release (see check.sh and docs/validation.md):
+ *    - per-sample output bit-identical to the original two-buffer research
+ *      code (viral_tree.c, not part of this repository; called "the
+ *      reference code" in the comments below) for p = 1..20;
  *    - p = 1, 2: agreement with an independent exact enumeration over all
  *      2^6 and 2^14 seed configurations (exact_small_p.py);
  *    - n_cut independent of thread count, batch size, and of
  *      stop/resume and job splitting.
- *  `make check` reruns the fast subset of these tests.
+ *  `make check` reruns the fast subset of these tests.  The campaign builds
+ *  were validated on the cluster itself (docs/validation.md).
  *
  *  Test hook: if the environment variable VIRAL_TREE_DUMP=<file> is set,
  *  the run is forced to one thread and every sample appends a line
@@ -330,7 +334,8 @@
 #include <omp.h>
 
 #define P_MAX                 40      /* sanity limit on the depth              */
-/* the next four can be overridden with -D at compile time (used by check.sh) */
+/* The next four can be overridden with -D at compile time.  The campaign
+ * builds and the tests use -DBATCH_MAX_PER_THREAD=1 (section 4.6).         */
 #ifndef REPORT_SEC
 #define REPORT_SEC            60.0    /* progress line to stdout at most so often */
 #endif
@@ -347,26 +352,35 @@
 
 /* ───────────────────────────── spins ───────────────────────────────────── */
 
-typedef struct { double x, y, z; } Vec3;
+typedef struct { double x, y, z; } Vec3;      /* a classical spin s_i */
 
-/* R_z by angle th.  Identical arithmetic to the reference code.            */
+/* rz -- rotate s about the z axis by the angle th:
+ *     (x, y, z) -> (x cos th - y sin th,  x sin th + y cos th,  z).
+ * Identical arithmetic to the reference code.  gcc turns the cos/sin pair
+ * into one sincos() call and, on an FMA target, fuses the multiply-adds;
+ * the last bits of every sample depend on both (section 5).               */
 static inline Vec3 rz(Vec3 s, double th) {
     double c = cos(th), sn = sin(th);
     return (Vec3){ c*s.x - sn*s.y,  sn*s.x + c*s.y,  s.z };
 }
-/* R_x with cos/sin of the angle precomputed (the angle beta_n is the same
- * for every vertex of a layer; computing cos/sin once per layer instead of
- * once per vertex gives bit-identical results and saves time).           */
+/* rx_cs -- rotate s about the x axis by an angle with cosine c and sine sn:
+ *     (x, y, z) -> (x,  y c - z sn,  y sn + z c).
+ * cos/sin are precomputed because the angle beta_n is the same for every
+ * vertex of a layer; computing them once per layer instead of once per
+ * vertex gives bit-identical results and saves time.                       */
 static inline Vec3 rx_cs(Vec3 s, double c, double sn) {
     return (Vec3){ s.x,  c*s.y - sn*s.z,  sn*s.y + c*s.z };
 }
 
 /* ─────────────────────── random numbers: xoshiro256** ──────────────────── */
 
-typedef struct { uint64_t s[4]; } Rng;
+typedef struct { uint64_t s[4]; } Rng;        /* xoshiro256** state */
 
+/* rotl -- rotate the 64-bit word x left by k bits, 0 < k < 64. */
 static inline uint64_t rotl(uint64_t x, int k) { return (x << k) | (x >> (64 - k)); }
 
+/* rng_next -- next 64-bit output of the xoshiro256** generator r
+ * (Blackman and Vigna); advances the state.                                 */
 static inline uint64_t rng_next(Rng *r) {
     uint64_t *s = r->s;
     uint64_t result = rotl(s[1] * 5, 7) * 9;
@@ -376,10 +390,11 @@ static inline uint64_t rng_next(Rng *r) {
     return result;
 }
 
-/* splitmix64 finalizer: a bijective hash of 64-bit words.  Per-sample seeds
- * MUST pass through it before rng_seed(), because rng_seed() expands its
- * argument by stepping it with the golden-ratio constant G: two seeds that
- * differ by a multiple of G would produce states sharing 3 of 4 words.    */
+/* mix64 -- splitmix64 finalizer: a bijective hash of 64-bit words.
+ * Per-sample seeds MUST pass through it before rng_seed(), because
+ * rng_seed() expands its argument by stepping it with the golden-ratio
+ * constant G: two seeds that differ by a multiple of G would produce states
+ * sharing 3 of 4 words.                                                     */
 static inline uint64_t mix64(uint64_t z) {
     z += 0x9e3779b97f4a7c15ULL;
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
@@ -387,6 +402,8 @@ static inline uint64_t mix64(uint64_t z) {
     return z ^ (z >> 31);
 }
 
+/* rng_seed -- xoshiro256** state from one 64-bit seed: the four words are
+ * four consecutive splitmix64 outputs starting at seed.                     */
 static Rng rng_seed(uint64_t seed) {
     Rng r;
     for (int i = 0; i < 4; i++) {
@@ -399,8 +416,10 @@ static Rng rng_seed(uint64_t seed) {
     return r;
 }
 
-/* Seed of sample with global index S (section 4.5).  Same formula as the
- * reference code, where S was the plain sample counter.                   */
+/* sample_rng -- the generator of the sample with global index
+ * S = job * 2^32 + k at depth p (section 4.5): xoshiro256** seeded with
+ * mix64(0x5DEECE66D ^ (p << 32) ^ mix64(S)).  Same formula as the reference
+ * code, where S was the plain sample counter, so job 0 repeats its samples. */
 static inline Rng sample_rng(int p, uint64_t S) {
     return rng_seed(mix64(0x5DEECE66DULL ^ ((uint64_t)p << 32) ^ mix64(S)));
 }
@@ -415,6 +434,9 @@ static size_t  ZS;       /* length of each z-scratch array = 2^(P-1)         */
 static size_t *OFF;      /* OFF[d]  = flat index of the first vertex of level d, d = 0..P */
 static size_t *NLEV;     /* NLEV[d] = number of vertices of level d               */
 
+/* build_geometry -- set P and the level layout of the depth-p tree
+ * (section 4.1): OFF[d] and NLEV[d] for d = 0..p, and NST, NTOT, NW, ZS.
+ * Allocates OFF and NLEV; exits if that fails.                              */
 static void build_geometry(int p) {
     P    = p;
     OFF  = malloc((size_t)(p + 1) * sizeof *OFF);
@@ -431,6 +453,8 @@ static void build_geometry(int p) {
     ZS   = (p >= 2) ? ((size_t)1 << (p - 1)) : 2;   /* largest saved level is P-2 */
 }
 
+/* bytes_per_thread -- size of one workspace (section 4.4): the states of
+ * levels 0..P-1, the seed bits and the two z-scratch arrays.               */
 static size_t bytes_per_thread(void) {
     return NST * sizeof(Vec3) + NW * sizeof(uint64_t) + 2 * ZS * sizeof(double);
 }
@@ -443,7 +467,14 @@ typedef struct {
     double *cb, *sb;                /* cos(beta[n]), sin(beta[n])             */
 } Angles;
 
-/* File format (as written by the training code):
+/* load_angles -- read alpha and the first p (beta, gamma) pairs of the file
+ * fname into A, whose beta, gamma, cb and sb arrays hold p doubles, and
+ * precompute cos/sin of alpha and of every beta.  Returns 1 on success;
+ * prints an error and returns 0 if the file is missing, malformed or has
+ * fewer than p layers.  Later layers are ignored, so the file of a larger p
+ * also serves a smaller one.
+ *
+ * File format (as written by the training code; see params/):
  *     line 1 : "# alpha ..."  comment
  *     line 2 : alpha
  *     line 3 : "# layer beta gamma"  comment
@@ -488,8 +519,9 @@ bad:
     return 0;
 }
 
-/* FNV-1a hash of a whole file; used to make sure a resumed run uses the
- * same angles as the run it continues.                                     */
+/* file_hash -- 64-bit FNV-1a hash of the whole file fname into *h; used to
+ * make sure a resumed run uses the same angles as the run it continues, and
+ * recorded as angles_hash.  Returns 1, or 0 if the file cannot be opened.  */
 static int file_hash(const char *fname, uint64_t *h) {
     FILE *f = fopen(fname, "rb");
     if (!f) return 0;
@@ -509,13 +541,19 @@ typedef struct {
     double   *zs[2];    /* old z of the level above the one being updated, ZS  */
 } Work;
 
-/* seed sign of the vertex with flat index i, as a z-component */
+/* seed_z -- time-0 z of the vertex with flat index i: eps_i sin(alpha),
+ * i.e. +sa if its seed bit in w is 1, else -sa.                             */
 static inline double seed_z(const uint64_t *w, size_t i, double sa) {
     return ((w[i >> 6] >> (i & 63)) & 1ULL) ? sa : -sa;
 }
 
 /* ─────────────────────────── one Monte-Carlo sample ───────────────────────
- * Returns 1 if the root edge is cut, 0 otherwise; *soft_out = s_u^z s_v^z. */
+ * one_sample -- draw the seeds of one sample from rng (NW words), run the P
+ * layers of VIRAL on the depth-P tree in the workspace W (sections 4.2-4.4)
+ * and read the root edge.  Returns 1 if the root edge is cut, i.e. the
+ * signs of s_u^z(P) and s_v^z(P) differ (sign(0) = +1), 0 otherwise;
+ * *soft_out = s_u^z s_v^z.  On return W->st[0].z and W->st[1].z hold
+ * s_u^z(P) and s_v^z(P) (read by the VIRAL_TREE_DUMP hook).                 */
 static int one_sample(Rng *rng, const Angles *A, Work *W, double *soft_out)
 {
     Vec3     *st = W->st;
@@ -604,6 +642,7 @@ static int one_sample(Rng *rng, const Angles *A, Work *W, double *soft_out)
 
 /* ────────────────────────── result / checkpoint file ───────────────────── */
 
+/* the contents of a result file (section 6), as accumulated by main() */
 typedef struct {
     int      p, job;
     uint64_t n_target, n_done, n_cut;
@@ -614,11 +653,16 @@ typedef struct {
     double   alpha;
 } State;
 
+/* state_path -- path of the result file of (p, job) in outdir:
+ * <outdir>/viral_tree_p<p>_job<job>.txt, written to buf (len bytes).        */
 static void state_path(char *buf, size_t len, const char *outdir, int p, int job) {
     snprintf(buf, len, "%s/viral_tree_p%d_job%d.txt", outdir, p, job);
 }
 
-/* atomic write: temp file + fsync + rename */
+/* write_state -- write S, with the derived estimates and the given threads
+ * and host, to path in the format of section 6.  Atomic: writes <path>.tmp,
+ * fsyncs it and renames it over path, so a crash leaves either the old or
+ * the new file.  Returns 1, or 0 with a warning if it could not write.     */
 static int write_state(const char *path, const State *S, int threads, const char *host) {
     char tmp[1200];
     snprintf(tmp, sizeof tmp, "%s.tmp", path);
@@ -658,7 +702,9 @@ static int write_state(const char *path, const State *S, int threads, const char
     return 1;
 }
 
-/* returns 1 if a file was read, 0 if there is none; exits on a corrupt file */
+/* read_state -- read the result file path into S.  Returns 1 if a file was
+ * read, 0 if there is none; exits with an error if a required field is
+ * missing or n_cut > n_done.                                                */
 static int read_state(const char *path, State *S) {
     FILE *f = fopen(path, "r");
     if (!f) return 0;
@@ -696,9 +742,13 @@ static int read_state(const char *path, State *S) {
 
 /* ───────────────────────────── signals ─────────────────────────────────── */
 
-static volatile sig_atomic_t g_stop = 0;
+static volatile sig_atomic_t g_stop = 0;     /* set once a stop is requested */
+
+/* on_signal -- handler of SIGTERM, SIGINT and SIGUSR1: ask the main loop to
+ * save its state and exit after the current batch (section 4.8).           */
 static void on_signal(int sig) { (void)sig; g_stop = 1; }
 
+/* install_signals -- route SIGTERM, SIGINT and SIGUSR1 to on_signal(). */
 static void install_signals(void) {
     struct sigaction sa;
     memset(&sa, 0, sizeof sa);
@@ -712,12 +762,19 @@ static void install_signals(void) {
 
 /* ─────────────────────────────── main ──────────────────────────────────── */
 
+/* usage -- print the command line to stderr. */
 static void usage(const char *prog) {
     fprintf(stderr,
         "usage: %s <p> <n_samples> [job_id=0] [angles_file=params/angles_p<p>.txt] [out_dir=.]\n"
         "       threads: set OMP_NUM_THREADS (memory = threads x 56.5*2^p bytes)\n", prog);
 }
 
+/* main -- run job `job` of depth p: the samples k = n_done .. n_samples-1 of
+ * the global indices S = job * 2^32 + k (section 4.5), resuming from the
+ * result file if it exists (section 4.7).  Prints a banner and progress
+ * lines to stdout and rewrites the result file at least once a minute.
+ * Exits 0 when the job is complete, was already complete, or was stopped by
+ * a signal with its state saved; 1 on any error.  Command line: section 5. */
 int main(int argc, char **argv)
 {
     if (argc < 3 || argc > 6) { usage(argv[0]); return 1; }

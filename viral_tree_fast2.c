@@ -13,7 +13,12 @@
  *  the algorithm and the formats).  The `threads` field of the result file is
  *  the number of threads working on each sample.
  *
- *      compile :  gcc -O3 -ffp-contract=off -fopenmp viral_tree_fast2.c -o viral_tree_fast2 -lm
+ *  It produced the extension campaigns results/torch-pP-extension-v1 and -v2,
+ *  i.e. 9M of the 10M samples of every depth (README.md).
+ *
+ *      compile :  gcc -Wall -Wextra -DBATCH_MAX_PER_THREAD=1 -O3 -ffp-contract=off -fopenmp \
+ *                     viral_tree_fast2.c -lm -o viral_tree_fast2
+ *                 (or: make; these are the flags of the campaign build)
  *      run     :  OMP_NUM_THREADS=<threads per sample> ./viral_tree_fast2 <p> <n> [job] [angles] [out]
  *
  * ----------------------------------------------------------------------------
@@ -82,8 +87,9 @@
  *  fma() (see there), and the file is compiled with -ffp-contract=off so that
  *  the compiler adds none of its own: the arithmetic is then the same at
  *  every site - reference kernel, tables and table kernel alike.
- *  Validation: tests/test_fast_equivalence.py compares whole per-sample dumps
- *  and result files with the frozen viral_tree_hpc binary.
+ *  Validation: tests/test_fast2_equivalence.py compares whole per-sample dumps
+ *  and result files with the frozen viral_tree_hpc binary (p <= 24) and with
+ *  viral_tree_fast (p = 26, 28, 30), at 1 to 8 threads (docs/validation.md).
  *
  * ----------------------------------------------------------------------------
  *  THE FUSED KERNEL (p >= 6)
@@ -138,7 +144,8 @@
 #include <omp.h>
 
 #define P_MAX                 40      /* sanity limit on the depth              */
-/* the next four can be overridden with -D at compile time (used by check.sh) */
+/* The next four can be overridden with -D at compile time.  The campaign
+ * builds and the tests use -DBATCH_MAX_PER_THREAD=1.                       */
 #ifndef REPORT_SEC
 #define REPORT_SEC            60.0    /* progress line to stdout at most so often */
 #endif
@@ -162,7 +169,9 @@
 
 typedef struct { double x, y, z; } Vec3;
 
-/* R_z by angle th, with the reference binary's exact arithmetic.
+/* rz -- rotate s about the z axis by the angle th,
+ *     (x, y, z) -> (x cos th - y sin th,  x sin th + y cos th,  z),
+ * with the reference binary's exact arithmetic.
  *
  * sincos() is called explicitly: the reference binary calls sincos as well
  * (GCC fuses the cos/sin pair of its rz), and glibc's cos() and sincos() can
@@ -185,18 +194,23 @@ static inline Vec3 rz(Vec3 s, double th) {
 #endif
     return (Vec3){ fma(c, s.x, -(sn*s.y)),  fma(sn, s.x, c*s.y),  s.z };
 }
-/* R_x with cos/sin of the angle precomputed (beta_n is the same for every
- * vertex of a layer).                                                       */
+/* rx_cs -- rotate s about the x axis by an angle with cosine c and sine sn,
+ *     (x, y, z) -> (x,  y c - z sn,  y sn + z c),
+ * with the fma() pattern of rz.  cos/sin are precomputed because beta_n is
+ * the same for every vertex of a layer.                                     */
 static inline Vec3 rx_cs(Vec3 s, double c, double sn) {
     return (Vec3){ s.x,  fma(c, s.y, -(sn*s.z)),  fma(sn, s.y, c*s.z) };
 }
 
 /* ─────────────────────── random numbers: xoshiro256** ──────────────────── */
 
-typedef struct { uint64_t s[4]; } Rng;
+typedef struct { uint64_t s[4]; } Rng;        /* xoshiro256** state */
 
+/* rotl -- rotate the 64-bit word x left by k bits, 0 < k < 64. */
 static inline uint64_t rotl(uint64_t x, int k) { return (x << k) | (x >> (64 - k)); }
 
+/* rng_next -- next 64-bit output of the xoshiro256** generator r
+ * (Blackman and Vigna); advances the state.                                 */
 static inline uint64_t rng_next(Rng *r) {
     uint64_t *s = r->s;
     uint64_t result = rotl(s[1] * 5, 7) * 9;
@@ -206,7 +220,8 @@ static inline uint64_t rng_next(Rng *r) {
     return result;
 }
 
-/* splitmix64 finalizer (see viral_tree_hpc.c) */
+/* mix64 -- splitmix64 finalizer: a bijective hash of 64-bit words (see
+ * viral_tree_hpc.c for why per-sample seeds must pass through it).         */
 static inline uint64_t mix64(uint64_t z) {
     z += 0x9e3779b97f4a7c15ULL;
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
@@ -214,6 +229,8 @@ static inline uint64_t mix64(uint64_t z) {
     return z ^ (z >> 31);
 }
 
+/* rng_seed -- xoshiro256** state from one 64-bit seed: the four words are
+ * four consecutive splitmix64 outputs starting at seed.                     */
 static Rng rng_seed(uint64_t seed) {
     Rng r;
     for (int i = 0; i < 4; i++) {
@@ -226,7 +243,8 @@ static Rng rng_seed(uint64_t seed) {
     return r;
 }
 
-/* Seed of the sample with global index S = job * 2^32 + k. */
+/* sample_rng -- the generator of the sample with global index
+ * S = job * 2^32 + k at depth p (viral_tree_hpc.c, section 4.5).           */
 static inline Rng sample_rng(int p, uint64_t S) {
     return rng_seed(mix64(0x5DEECE66DULL ^ ((uint64_t)p << 32) ^ mix64(S)));
 }
@@ -241,7 +259,9 @@ static size_t  ZS;               /* reference z-scratch length = 2^(P-1)        
 static size_t  OFF[P_MAX + 1];   /* OFF[d]  = flat index of the first vertex of level d */
 static size_t  NLEV[P_MAX + 1];  /* NLEV[d] = number of vertices of level d            */
 
-/* (Re)builds the geometry for depth p.  The self-check switches depth. */
+/* build_geometry -- (re)build the level layout of the depth-p tree
+ * (viral_tree_hpc.c, section 4.1): P, OFF[d] and NLEV[d] for d = 0..p, and
+ * NST, NTOT, NW, ZS.  The self-check calls it again for its own depth.     */
 static void build_geometry(int p) {
     P = p;
     NLEV[0] = 2;  OFF[0] = 0;
@@ -260,17 +280,21 @@ enum { K_REF, K_TABLES, K_FUSED };
 static const char *KERNEL_NAME[] = { "reference", "tables (exact layers 0-1, layer 2 from lookups)",
                                      "fused (tables, levels below p-5 never stored)" };
 
-/* spins stored: reference levels 0..P-1, tables 0..P-4, fused 0..P-5 */
+/* Array sizes of kernel k at the current depth:
+ * kernel_nst -- spins stored: reference levels 0..P-1, tables 0..P-4, fused 0..P-5 */
 static size_t kernel_nst(int k) { return k == K_REF ? NST : k == K_TABLES ? OFF[P - 3] : OFF[P - 4]; }
-/* z-scratch length: the largest level that saves its z, at least 2 (the roots) */
+/* kernel_nzs -- z-scratch length: the largest level that saves its z, at least 2 (the roots) */
 static size_t kernel_nzs(int k) {
     const size_t z = k == K_REF ? ZS : (size_t)1 << (P - (k == K_TABLES ? 4 : 5));
     return (z < 2) ? 2 : z;
 }
-/* z-only array: time-4 z of level P-4 (fused kernel only) */
+/* kernel_nzl -- z-only array: time-4 z of level P-4 (fused kernel only) */
 static size_t kernel_nzl(int k) { return k == K_FUSED ? NLEV[P - 4] : 0; }
+/* kernel_nw -- seed words; the table kernels read one word past the last (bitsn) */
 static size_t kernel_nw(int k)  { return k == K_REF ? NW : NW + 1; }
 
+/* bytes_per_sample -- size of the one workspace of kernel k, shared by all
+ * threads (see the header for the formulas).                               */
 static size_t bytes_per_sample(int k) {
     return kernel_nst(k) * sizeof(Vec3) + kernel_nw(k) * sizeof(uint64_t)
          + (2 * kernel_nzs(k) + kernel_nzl(k)) * sizeof(double);
@@ -284,7 +308,14 @@ typedef struct {
     double *cb, *sb;                /* cos(beta[n]), sin(beta[n])             */
 } Angles;
 
-/* File format (as written by the training code):
+/* load_angles -- read alpha and the first p (beta, gamma) pairs of the file
+ * fname into A, whose beta, gamma, cb and sb arrays hold p doubles, and
+ * precompute cos/sin of alpha and of every beta.  Returns 1 on success;
+ * prints an error and returns 0 if the file is missing, malformed or has
+ * fewer than p layers.  Later layers are ignored, so the file of a larger p
+ * also serves a smaller one.
+ *
+ * File format (as written by the training code; see params/):
  *     line 1 : "# alpha ..."  comment
  *     line 2 : alpha
  *     line 3 : "# layer beta gamma"  comment
@@ -324,8 +355,9 @@ bad:
     return 0;
 }
 
-/* FNV-1a hash of a whole file; used to make sure a resumed run uses the
- * same angles as the run it continues.                                     */
+/* file_hash -- 64-bit FNV-1a hash of the whole file fname into *h; used to
+ * make sure a resumed run uses the same angles as the run it continues, and
+ * recorded as angles_hash.  Returns 1, or 0 if the file cannot be opened.  */
 static int file_hash(const char *fname, uint64_t *h) {
     FILE *f = fopen(fname, "rb");
     if (!f) return 0;
@@ -347,6 +379,8 @@ typedef struct {
     size_t    nst, nw, nzs, nzl;
 } Work;
 
+/* alloc_work -- allocate a workspace for `kernel` at the current depth.
+ * Returns 1 if every allocation succeeded, 0 otherwise.                     */
 static int alloc_work(Work *W, int kernel) {
     W->nst = kernel_nst(kernel);
     W->nw  = kernel_nw(kernel);
@@ -360,12 +394,15 @@ static int alloc_work(Work *W, int kernel) {
     return W->st && W->w && W->zs[0] && W->zs[1] && (W->zl || !W->nzl);
 }
 
+/* free_work -- release a workspace and zero the struct. */
 static void free_work(Work *W) {
     free(W->st);  free(W->w);  free(W->zs[0]);  free(W->zs[1]);  free(W->zl);
     memset(W, 0, sizeof *W);
 }
 
-/* zero every page with the threads that will use it (first-touch NUMA) */
+/* touch -- zero `bytes` bytes at p in 1 MiB chunks split statically over the
+ * threads, so every page is first touched by a thread that will use it
+ * (first-touch NUMA placement, and an early out-of-memory).                 */
 static void touch(void *p, size_t bytes) {
     char *c = p;
     const size_t chunk = (size_t)1 << 20;
@@ -377,6 +414,7 @@ static void touch(void *p, size_t bytes) {
     }
 }
 
+/* touch_work -- touch() every array of the workspace. */
 static void touch_work(Work *W) {
     touch(W->st,    W->nst * sizeof(Vec3));
     touch(W->w,     W->nw  * sizeof(uint64_t));
@@ -385,13 +423,19 @@ static void touch_work(Work *W) {
     if (W->zl) touch(W->zl, W->nzl * sizeof(double));
 }
 
-/* seed sign of the vertex with flat index i, as a z-component */
+/* seed_z -- time-0 z of the vertex with flat index i: eps_i sin(alpha),
+ * i.e. +sa if its seed bit in w is 1, else -sa.                             */
 static inline double seed_z(const uint64_t *w, size_t i, double sa) {
     return ((w[i >> 6] >> (i & 63)) & 1ULL) ? sa : -sa;
 }
 
 /* ──────────────────── reference kernel (viral_tree_hpc.c) ─────────────────
- * Returns 1 if the root edge is cut, 0 otherwise; *soft_out = s_u^z s_v^z. */
+ * one_sample_ref -- viral_tree_hpc.c's one_sample(): draw the seeds of one
+ * sample from rng (NW words), run the P layers on the full tree in W and
+ * read the root edge.  Returns 1 if the root edge is cut, i.e. the signs of
+ * s_u^z(P) and s_v^z(P) differ (sign(0) = +1), 0 otherwise;
+ * *soft_out = s_u^z s_v^z.  On return W->st[0].z and W->st[1].z hold
+ * s_u^z(P) and s_v^z(P).  Used for p < 4, and by the self-check.          */
 static int one_sample_ref(Rng *rng, const Angles *A, Work *W, double *soft_out)
 {
     Vec3     *st = W->st;
@@ -480,7 +524,8 @@ typedef struct {
     Vec3 t2[1024];      /* time-2 spin: [radius-2 ball], bit layout of t2_idx    */
 } Tables;
 
-/* T2 index bit layout:  0 self, 1 parent, 2 grandparent, 3 sibling,
+/* build_tables -- the exact tables T1 and T2 (header, WHERE THE TIME GOES).
+ * T2 index bit layout:  0 self, 1 parent, 2 grandparent, 3 sibling,
  * 4 child 1, 5 child 2, 6-7 the children of child 1, 8-9 those of child 2.
  * Builds both tables; returns 0 if the time-1 symmetry does not hold.       */
 static int build_tables(const Angles *A, Tables *T)
@@ -525,7 +570,10 @@ static int build_tables(const Angles *A, Tables *T)
     return 1;
 }
 
-/* seed bit of flat index i, and n <= 32 consecutive seed bits from i */
+/* bit1 -- seed bit of the vertex with flat index i.
+ * bitsn -- the n <= 32 seed bits of flat indices i .. i+n-1, bit 0 = vertex
+ * i.  May read the word after the last one, hence the table kernels'
+ * NW + 1 seed words.                                                        */
 static inline unsigned bit1(const uint64_t *w, size_t i) {
     return (unsigned)(w[i >> 6] >> (i & 63)) & 1u;
 }
@@ -537,7 +585,8 @@ static inline unsigned bitsn(const uint64_t *w, size_t i, unsigned n) {
     return (unsigned)(v & ((1ULL << n) - 1));
 }
 
-/* T2 index of vertex k of level d (0 <= d <= P-2). */
+/* t2_idx -- T2 index of vertex k of level d (0 <= d <= P-2): the seed bits
+ * of its radius-2 ball, in the layout of build_tables.                      */
 static inline unsigned t2_idx(const uint64_t *w, int d, size_t k)
 {
     unsigned self, par, gpar, sib;
@@ -562,8 +611,9 @@ static inline unsigned t2_idx(const uint64_t *w, int d, size_t k)
          | (bitsn(w, OFF[d + 2] + 4 * k, 4) << 6);
 }
 
-/* T2 index of child j (0, 1) of a vertex with index ix; gc4 = the four seed
- * bits of that child's grandchildren.  Valid at every level, roots included. */
+/* t2_child_idx -- T2 index of child j (0, 1) of a vertex with T2 index ix;
+ * gc4 = the four seed bits of that child's grandchildren.  Valid at every
+ * level, roots included.                                                    */
 static inline unsigned t2_child_idx(unsigned ix, unsigned j, unsigned gc4)
 {
     return ((ix >> (4 + j)) & 1u)               /* self        = that child        */
@@ -574,8 +624,8 @@ static inline unsigned t2_child_idx(unsigned ix, unsigned j, unsigned gc4)
          | (gc4 << 6);
 }
 
-/* Time-3 z of vertex j of level e = P-3 (never stored), from T2.  Used for
- * the roots' children when P = 4.                                           */
+/* lazy_z3 -- time-3 z of vertex j of level e = P-3 (never stored), from T2.
+ * Used for the roots' children when P = 4.                                  */
 static double lazy_z3(const uint64_t *w, const Angles *A, const Tables *T, int e, size_t j)
 {
     const Vec3  *t2 = T->t2;
@@ -586,7 +636,9 @@ static double lazy_z3(const uint64_t *w, const Angles *A, const Tables *T, int e
 }
 
 /* ─────────────────────── table kernel: one sample ─────────────────────────
- * Same contract as one_sample_ref.  Requires P >= FAST_MIN_P.               */
+ * one_sample_fast -- one sample with the table kernel (header, THE TABLE
+ * KERNEL).  Same contract, and the same result bits, as one_sample_ref.
+ * Requires P >= FAST_MIN_P and the tables T of these angles.               */
 static int one_sample_fast(Rng *rng, const Angles *A, const Tables *T, Work *W, double *soft_out)
 {
     Vec3       *st = W->st;
@@ -705,11 +757,13 @@ static int one_sample_fast(Rng *rng, const Angles *A, const Tables *T, Work *W, 
 }
 
 /* ─────────────────────── fused kernel: one sample ─────────────────────────
- * Same contract as one_sample_ref; requires P >= FUSED_MIN_P.  See THE FUSED
- * KERNEL in the header.  Levels with at least g_par_min vertices are split
- * statically over the OpenMP threads; every vertex is computed with exactly
- * the same operations whichever thread does it.                             */
-static size_t g_par_min = PAR_MIN_DEFAULT;
+ * one_sample_fused -- one sample with the fused kernel.  Same contract, and
+ * the same result bits, as one_sample_ref; requires P >= FUSED_MIN_P and
+ * the tables T of these angles.  See THE FUSED KERNEL in the header.  Levels
+ * with at least g_par_min vertices are split statically over the OpenMP
+ * threads; every vertex is computed with exactly the same operations
+ * whichever thread does it.                                                 */
+static size_t g_par_min = PAR_MIN_DEFAULT;     /* VIRAL_PAR_MIN, set by main */
 
 static int one_sample_fused(Rng *rng, const Angles *A, const Tables *T, Work *W, double *soft_out)
 {
@@ -857,6 +911,8 @@ static int one_sample_fused(Rng *rng, const Angles *A, const Tables *T, Work *W,
     return (su != sv) ? 1 : 0;
 }
 
+/* run_kernel -- one sample with `kernel` (K_REF, K_TABLES or K_FUSED); same
+ * contract as one_sample_ref.  T may be NULL for K_REF.                     */
 static int run_kernel(int kernel, Rng *rng, const Angles *A, const Tables *T, Work *W, double *soft)
 {
     if (kernel == K_FUSED)  return one_sample_fused(rng, A, T, W, soft);
@@ -864,9 +920,11 @@ static int run_kernel(int kernel, Rng *rng, const Angles *A, const Tables *T, Wo
     return one_sample_ref(rng, A, W, soft);
 }
 
-/* Start-up self-check: n samples at depth pc through `kernel` (with the
- * current threads) and through the reference kernel, compared bit for bit.
- * Leaves the geometry at depth pc; the caller restores it.                  */
+/* selfcheck -- start-up self-check: samples S = 0..n-1 at depth pc through
+ * `kernel` (with the current threads) and through the reference kernel,
+ * compared bit for bit (cut, soft, s_u^z, s_v^z).  Returns 1 if all agree;
+ * otherwise prints the first difference and returns 0.  Leaves the geometry
+ * at depth pc; the caller restores it.                                      */
 static int selfcheck(int pc, uint64_t n, int kernel, const Angles *A, const Tables *T)
 {
     build_geometry(pc);
@@ -896,6 +954,7 @@ static int selfcheck(int pc, uint64_t n, int kernel, const Angles *A, const Tabl
 
 /* ────────────────────────── result / checkpoint file ───────────────────── */
 
+/* the contents of a result file (viral_tree_hpc.c, section 6) */
 typedef struct {
     int      p, job;
     uint64_t n_target, n_done, n_cut;
@@ -906,11 +965,16 @@ typedef struct {
     double   alpha;
 } State;
 
+/* state_path -- path of the result file of (p, job) in outdir:
+ * <outdir>/viral_tree_p<p>_job<job>.txt, written to buf (len bytes).        */
 static void state_path(char *buf, size_t len, const char *outdir, int p, int job) {
     snprintf(buf, len, "%s/viral_tree_p%d_job%d.txt", outdir, p, job);
 }
 
-/* atomic write: temp file + fsync + rename */
+/* write_state -- write S, with the derived estimates and the given threads
+ * and host, to path in the format of viral_tree_hpc.c, section 6.  Atomic:
+ * writes <path>.tmp, fsyncs it and renames it over path, so a crash leaves
+ * either the old or the new file.  Returns 1, or 0 with a warning.         */
 static int write_state(const char *path, const State *S, int threads, const char *host) {
     char tmp[1200];
     snprintf(tmp, sizeof tmp, "%s.tmp", path);
@@ -950,7 +1014,9 @@ static int write_state(const char *path, const State *S, int threads, const char
     return 1;
 }
 
-/* returns 1 if a file was read, 0 if there is none; exits on a corrupt file */
+/* read_state -- read the result file path into S.  Returns 1 if a file was
+ * read, 0 if there is none; exits with an error if a required field is
+ * missing or n_cut > n_done.                                                */
 static int read_state(const char *path, State *S) {
     FILE *f = fopen(path, "r");
     if (!f) return 0;
@@ -988,9 +1054,13 @@ static int read_state(const char *path, State *S) {
 
 /* ───────────────────────────── signals ─────────────────────────────────── */
 
-static volatile sig_atomic_t g_stop = 0;
+static volatile sig_atomic_t g_stop = 0;     /* set once a stop is requested */
+
+/* on_signal -- handler of SIGTERM, SIGINT and SIGUSR1: ask the main loop to
+ * save its state and exit after the current batch.                         */
 static void on_signal(int sig) { (void)sig; g_stop = 1; }
 
+/* install_signals -- route SIGTERM, SIGINT and SIGUSR1 to on_signal(). */
 static void install_signals(void) {
     struct sigaction sa;
     memset(&sa, 0, sizeof sa);
@@ -1004,6 +1074,7 @@ static void install_signals(void) {
 
 /* ─────────────────────────────── main ──────────────────────────────────── */
 
+/* usage -- print the command line and the environment variables to stderr. */
 static void usage(const char *prog) {
     fprintf(stderr,
         "usage: %s <p> <n_samples> [job_id=0] [angles_file=params/angles_p<p>.txt] [out_dir=.]\n"
@@ -1014,6 +1085,15 @@ static void usage(const char *prog) {
         prog, SELFCHECK_DEFAULT, PAR_MIN_DEFAULT);
 }
 
+/* main -- like viral_tree_hpc.c's main: run job `job` of depth p, resuming
+ * from the result file if it exists.  Picks the kernel (reference p < 4,
+ * tables p = 4, 5, fused p >= 6, or VIRAL_KERNEL / VIRAL_FORCE_REF), builds
+ * the exact tables and runs the start-up self-check, then computes the
+ * samples one after another in a single workspace; OMP_NUM_THREADS threads
+ * work inside each sample (fused kernel only, otherwise one thread).  Exits
+ * 0 when the job is complete, was already complete, or was stopped by a
+ * signal with its state saved; 1 on any error, including a failed
+ * self-check.                                                               */
 int main(int argc, char **argv)
 {
     if (argc < 3 || argc > 6) { usage(argv[0]); return 1; }
