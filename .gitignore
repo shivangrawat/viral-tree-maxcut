@@ -6,8 +6,10 @@
 /viral_tree_fast
 /viral_tree_fast2
 
-# scratch output of check.sh and the build lock of the old job scripts
+# scratch output of check.sh and of the README examples, and the old build lock
 check_tmp/
+/run/
+/out/
 .build.lock
 
 # Python

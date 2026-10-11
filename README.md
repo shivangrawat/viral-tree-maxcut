@@ -1,191 +1,263 @@
-# viral_tree_hpc — VIRAL on the 3-regular tree (MaxCut lower bound)
+# VIRAL on the 3-regular tree: Max-Cut bounds for large-girth graphs
 
-This folder is self-contained.  It needs a C compiler with OpenMP (gcc is
-fine), `make`, and `python3`.  No libraries, no downloads, no configuration.
+This repository computes **c_VIRAL(p)**, the probability that the depth-p VIRAL
+algorithm cuts the root edge of the 3-regular tree. VIRAL is a classical local
+algorithm (every vertex carries a unit vector that is rotated p times by angles
+set by its neighbours). Because it is local, every 3-regular graph of girth at
+least 2p + 2 has a cut containing at least a fraction c_VIRAL(p) of its edges.
+With 10^7 Monte-Carlo samples for every even depth p = 2..32, the bound at
+p = 32 is **M_66 ≥ 0.91271 at 99.99999% confidence**, above the previous
+asymptotic lower bound 0.912.
 
-**What it computes.**  `c_VIRAL(p)`: the probability that the VIRAL local
-algorithm, run for `p` layers on the infinite 3-regular tree, cuts the root
-edge.  Because the algorithm is local, this number is a rigorous lower bound on
-the max-cut fraction of every 3-regular graph of girth ≥ 2p+2, i.e. on
-`M_g = inf{ MaxCut(G)/|E| : G 3-regular, girth ≥ g }` for all `g ≥ 2p+2`.
-The best published bound is `lim M_g ≥ 0.912`.  **The plan is to measure
-`c_VIRAL(p)` for p = 24, 26, 28, 30 with 10⁶ Monte-Carlo samples each**
-(statistical error 2.9·10⁻⁴ per point), which locates where the curve crosses
-0.912.  The whole story — problem, algorithm, proof, how the code works — is
-the preamble of `viral_tree_hpc.c`.
+It contains the solvers, the trained angles, the raw results of all 160M
+samples, and the scripts and records needed to check or reproduce every number.
 
----
+> F. Morone, S. Rawat, D. Sels, *Whither quantum advantage: new classical
+> bounds for Max-Cut on large-girth 3-regular graphs* (2026).
 
-## 1. Steps to run (SLURM cluster)
+## The parameters: `params/`
+
+**`params/angles_p<p>.txt`** holds the fixed VIRAL angles for depth p: the
+angle α of the initial state and the angles β_n, γ_n of the p layers,
+
+```
+s_i(0)   = (cos α, 0, ε_i sin α),          ε_i = ±1 a fair random seed per vertex
+s_i(n+1) = R_x(β_n) R_z(γ_n h_i(n)) s_i(n),  h_i(n) = Σ_{j neighbour of i} s_j^z(n)
+σ_i      = sign(s_i^z(p))                   the side of the cut
+```
+
+(Eqs. (3)–(5) of the paper). There is one file for every even p = 2..100; the
+results use p = 2..32, the other files are for larger depths. The angles were
+trained in Ref. [15] (Morone, Kent, Sels, arXiv:2604.01512) by gradient
+descent on random 3-regular graphs with 10^6 vertices and are used unchanged.
+Any fixed angles give a valid bound; these are not optimised for the tree, so
+the bounds are conservative.
+
+Format, shown for `params/angles_p2.txt`:
+
+```
+# alpha  (best H/N = -0.45315545, best Ht/N = -0.76681060)    <- comment: training result
+0.4556340411                                                  <- alpha
+# layer  beta  gamma                                          <- comment
+   1  1.0782368501  -0.8633872203                             <- layer 1: beta_0, gamma_0
+   2  0.7602795404  -1.2884226254                             <- layer 2: beta_1, gamma_1
+```
+
+- Angles are in radians. Line n + 3 of the file is layer n of the file's
+  numbering (1..p), i.e. (β_{n−1}, γ_{n−1}) in the paper's.
+- Line 1 records the training result for reference: the lowest energy per
+  vertex reached on the training graphs, with the continuous spins s^z (H/N)
+  and after rounding the spins to ±1 (Ht/N). The solvers skip it.
+- The solvers read `params/angles_p<p>.txt` by default (relative to the working
+  directory) and use only the first p layers, so a file of a larger depth can
+  serve a smaller one.
+- Every result file records the angles file's 64-bit FNV-1a hash
+  (`angles_hash`) and every campaign manifest its sha256. A resumed job and
+  `merge_results.py` refuse to mix angles. Do not edit these files.
+
+## Results
+
+`make table` prints Table I of the paper from the committed result files:
+
+| p | girth g ≥ | c_VIRAL(p) | L (99.99999%) | jobs | samples | core-hours |
+|---:|---:|:---:|:---:|---:|---:|---:|
+| 2 | 6 | 0.755779(136) | 0.75507 | 4 | 10000000 | 0.0 |
+| 4 | 10 | 0.827983(119) | 0.82736 | 4 | 10000000 | 0.0 |
+| 6 | 14 | 0.856546(111) | 0.85596 | 4 | 10000000 | 0.0 |
+| 8 | 18 | 0.873223(105) | 0.87267 | 4 | 10000000 | 0.0 |
+| 10 | 22 | 0.884378(101) | 0.88385 | 4 | 10000000 | 0.1 |
+| 12 | 26 | 0.891760(98) | 0.89124 | 4 | 10000000 | 0.3 |
+| 14 | 30 | 0.896941(96) | 0.89644 | 4 | 10000000 | 1.0 |
+| 16 | 34 | 0.900672(95) | 0.90017 | 4 | 10000000 | 3.8 |
+| 18 | 38 | 0.903873(93) | 0.90338 | 7 | 10000000 | 14.7 |
+| 20 | 42 | 0.906053(92) | 0.90557 | 25 | 10000000 | 59.2 |
+| 22 | 46 | 0.907825(91) | 0.90734 | 100 | 10000000 | 239.3 |
+| 24 | 50 | 0.909322(91) | 0.90884 | 140 | 10000000 | 977.4 |
+| 26 | 54 | 0.910545(90) | 0.91007 | 325 | 10000000 | 3763.9 |
+| 28 | 58 | 0.911469(90) | 0.91100 | 650 | 10000000 | 14467.6 |
+| 30 | 62 | 0.912373(89) | 0.91190 | 1400 | 10000000 | 64166.8 |
+| 32 | 66 | 0.913183(89) | 0.91271 | 2500 | 10000000 | 205045.8 |
+| total | | | | 5179 | 160000000 | 288739.9 |
+
+- **c_VIRAL(p)** is the fraction of samples whose root edge is cut, x = n_cut/n,
+  with its standard error sqrt(x(1 − x)/n) in units of the last digit.
+- **L** is the exact one-sided Clopper–Pearson lower confidence bound on
+  c_VIRAL(p) at confidence 1 − 10^−7, rounded **down** to 5 decimals. Since
+  M_g ≥ c_VIRAL(p) for every g ≥ 2p + 2 is a theorem, M_g ≥ L holds for those g
+  at that confidence. (Rounding the normal approximation c − 5.2σ down instead
+  gives the same numbers except at p = 16 and 24, where it is 10^−5 higher.)
+- `results/merge_10M.txt` has the full merge for every depth, including the
+  bounds at 95–99.99% confidence.
+
+## Repository layout
+
+```
+README.md, Makefile, check.sh
+viral_tree_hpc.c       reference solver; its header explains the problem, the algorithm,
+                       why the tree value is a bound, the code and the file formats
+viral_tree_fast.c      same samples with exact lookup tables: 4x fewer sincos calls
+viral_tree_fast2.c     viral_tree_fast plus threads inside a sample and a smaller workspace
+merge_results.py       merges result files: estimates, exact confidence bounds, --table
+exact_small_p.py       exact enumeration of all seeds at p = 1, 2 (independent check; numpy)
+params/                the trained angles (above)
+results/               the raw results: 48 campaigns, 5,179 result files (results/README.md)
+scripts/               campaign launchers and SLURM wrappers as used, run_array.slurm
+scripts/validation/    the build, equivalence and seed-audit jobs run on the cluster
+tests/                 equivalence suites, seed_audit.c, check_sources.sh
+docs/                  solvers.md, campaigns.md, validation.md
+```
+
+## Quick start
+
+You need a C compiler with OpenMP, `make` and Python 3 (standard library only;
+`exact_small_p.py` also needs numpy).
 
 ```bash
-cd CODE-for-HPC              # this folder
-make                         # builds ./viral_tree_hpc   (a few seconds)
-make check                   # ~1 minute; must end with:  ALL CHECKS PASSED
-sbatch submit_p24.slurm      # 1e6 samples each; cheapest first, see the cost table below
-sbatch submit_p26.slurm
-sbatch submit_p28.slurm
-sbatch submit_p30.slurm      # needs >= 256 GB nodes, see section 2
+make                     # builds viral_tree_hpc, viral_tree_fast, viral_tree_fast2
+make check               # check.sh on each solver: exact p = 2 value, threads, resume (minutes)
+mkdir -p run
+OMP_NUM_THREADS=1 ./viral_tree_fast2 16 20000 0 params/angles_p16.txt run
+python3 merge_results.py run
+python3 exact_small_p.py params/angles_p2.txt 2      # exact c_VIRAL(2) = 12380/16384
 ```
 
-That is all.  The job scripts create what they need, write everything into
-`results/`, and all jobs (of all p) are independent of each other, so the
-four arrays can run at the same time or one after the other.
+On macOS, Apple clang needs an OpenMP runtime: `brew install libomp` (the
+Makefile finds it), or `make LIBOMP=<prefix>` with any prefix that has
+`include/omp.h` and `lib/libomp.dylib`, e.g. the one bundled with PyTorch
+(`make LIBOMP=$HOME/miniforge3/lib/python3.12/site-packages/torch`).
 
-While it runs / when it is done:
+The command line of all three solvers:
+
+```
+./viral_tree_fast2 <p> <n_samples> [job_id=0] [angles_file=params/angles_p<p>.txt] [out_dir=.]
+```
+
+A job writes `<out_dir>/viral_tree_p<p>_job<job_id>.txt`, rewritten at least
+once a minute; rerunning the same command resumes it. Different job ids are
+disjoint sets of samples whose results add; never merge the same (p, job_id)
+twice. Threads: `OMP_NUM_THREADS` (inside each sample for `viral_tree_fast2`,
+over samples for the other two). Memory, printed at start-up: about 5·2^p bytes
+for `viral_tree_fast2` (20 GB at p = 32), 7.5·2^p per thread for
+`viral_tree_fast`, 56.5·2^p per thread for `viral_tree_hpc`. Details:
+[docs/solvers.md](docs/solvers.md).
+
+## Reproducing the published numbers
+
+### From the committed result files
 
 ```bash
-squeue -u $USER                          # progress of the array
-python3 merge_results.py results         # current combined estimate (valid at any time)
+make table                                     # Table I, all depths
+python3 merge_results.py results/torch-p32-million-v1/jobs results/torch-p32-extension-v1/jobs \
+    results/torch-p32-extension-v2/jobs -p 32  # one depth in full, as in results/merge_10M.txt
 ```
 
-**If jobs hit the wall-time limit** before finishing: `sbatch` the same
-script again, unchanged.  Every job resumes from its own file; jobs that were
-already complete exit immediately.  Repeat until `merge_results.py` shows
-`0 still running / incomplete` for that p.
+### Re-running the Monte Carlo
 
-**What to send back:** the folder `results/` (all `viral_tree_p*_job*.txt`
-files and the `slurm_*.out` logs; a few MB) — or just the output of
-`python3 merge_results.py results -v`.  Partial results are useful too.
-
-### Adapting the resource requests
-
-If the cluster rejects a request, edit the `#SBATCH` lines of that script
-following the rules written above them; the only hard constraint is
-
-```
-memory per job  ≥  (threads per job) × (memory per thread)  +  1 GB
-memory per thread = 56.5·2^p bytes:  p=24 0.88 GB,  p=26 3.53 GB,  p=28 14.1 GB,  p=30 56.5 GB
-```
-
-Anything else (fewer/more tasks, fewer/more threads, shorter time limit) only
-changes how long it takes.  The program prints its exact memory need at start
-and touches all of it immediately, so a job that does not fit fails within
-seconds — it never dies hours in.  For p = 28 and 30 the scripts' headers give
-the thread/memory pairs for 128 GB, 256 GB, 512 GB, 1 TB nodes.
-
-### Not SLURM?
-
-Each job is one command; any scheduler or plain shell works:
+Every published sample is fixed by (p, job id, sample index), so rerunning a
+job regenerates its result file. The job ids and samples per job of all 48
+campaigns are in [docs/campaigns.md](docs/campaigns.md#per-campaign-layout);
+the three campaigns of a depth start at job ids 0, 1000 and 2000. For example,
+p = 24, extension-v2 (60 jobs of 100,000 samples, ids 2000–2059), on any SLURM
+cluster:
 
 ```bash
-export OMP_NUM_THREADS=16
-./viral_tree_hpc 26 10000 <job_id> params/angles_p26.txt results
+mkdir -p out/p24-extension-v2
+sbatch --array=0-59 --cpus-per-task=1 --mem=1G --time=12:00:00 \
+    --output=out/p24-extension-v2/slurm_%A_%a.out \
+    scripts/run_array.slurm ./viral_tree_fast2 24 100000 2000 out/p24-extension-v2
+python3 merge_results.py out/p24-extension-v2 -p 24
 ```
 
-Run it for `job_id = 0, 1, 2, …` (100 of them for 10⁶ samples) on as many
-machines as you like — different ids never overlap — then
-`python3 merge_results.py results`.  If a job is killed, rerun the same
-command: it resumes.  Same for the other p with the n/job of the table below.
+Resubmit the same command for jobs stopped by the time limit until
+`merge_results.py` reports `0 still running / incomplete`. Without SLURM, run
+the solver once per job id, on as many machines as you like.
 
----
+**Identical bytes.** The regenerated files equal the committed ones in every
+line except `elapsed_s`, `core_seconds`, `sec_per_sample_core`, `host`,
+`angles_file` (an absolute path) and, for `viral_tree_fast2` with a different
+thread count, `threads`, provided
 
-## 2. Cost
+- the solver is built with the campaign flags (`make` uses them), and
+- `viral_tree_fast` and `viral_tree_fast2` call the same `sincos` as the
+  campaigns: glibc 2.39 (they spell out every fused multiply-add themselves);
+- `viral_tree_hpc` is also compiled like the campaign build, gcc 14.3.1
+  targeting x86-64-v3 (add `make CFLAGS_EXTRA=-march=x86-64-v3` where that is
+  not the default), and runs one thread per job (`soft_sum` depends on the
+  order of the additions).
 
-Measured on an Intel i9-10900X (3.7 GHz), GCC 9.4, `-O3`:
+On other platforms the last bits of a few samples can differ, which moves
+n_cut by O(1) per 10^6 samples and leaves the estimates statistically
+unchanged. To compare a regenerated file with the committed one:
 
-| p | seconds per sample per core | memory per thread | girth covered |
-|---|---|---|---|
-| 22 | 0.31 | 0.22 GB | ≥ 46 |
-| 24 | 1.31 | 0.88 GB | ≥ 50 |
-| 26 | **4.3** | **3.53 GB** | ≥ 54 |
-| 28 | ≈ 15 (extrapolated) | 14.1 GB | ≥ 58 |
-| 30 | ≈ 60 (extrapolated) | 56.5 GB | ≥ 62 |
-
-Memory per thread is 56.5·2^p bytes exactly.  Statistical error after n
-samples ≈ 0.29/√n:  n = 10⁵ → 9·10⁻⁴,  10⁶ → 2.9·10⁻⁴.
-
-**The plan: 10⁶ samples for each p** (the p = 28 and 30 timings are
-extrapolated from p = 26, factor 2 per unit of p; they will be measured by the
-first jobs and printed in the logs as `s/sample/core`):
-
-| script | p | jobs × samples | threads / job | memory / job | wall / job | core-hours |
-|---|---|---|---|---|---|---|
-| `submit_p24.slurm` | 24 | 50 × 20 000 | 16 | 16 GB | 0.5 h | 360 |
-| `submit_p26.slurm` | 26 | 100 × 10 000 | 16 | 60 GB | 0.75 h | 1 200 |
-| `submit_p28.slurm` | 28 | 200 × 5 000 | 8 | 116 GB | ≈ 3 h | ≈ 4 700 |
-| `submit_p30.slurm` | 30 | 500 × 2 000 | 4 | 228 GB | ≈ 10 h | ≈ 19 000 |
-
-Total ≈ 25 000 core-hours, three quarters of it p = 30.  **p = 30 is limited by
-memory, not cores**: 56.5 GB per thread means 4 threads on a 256 GB node, so
-its 500 jobs are ≈ 5 000 node-hours on 256 GB nodes (≈ 2 500 on 512 GB nodes
-with 8 threads, ≈ 1 250 on 1 TB nodes with 16).  If the cluster has few
-large-memory nodes, run p = 24, 26, 28 first and p = 30 as far as the
-allocation allows — every completed job is a usable partial result.
-
----
-
-## 3. Troubleshooting
-
-| symptom | cause / fix |
-|---|---|
-| `make`: `gcc: command not found` or `omp.h: No such file` | load a compiler: `module load gcc` (or `module avail gcc` to see the names), then `make` again.  Any gcc ≥ 4.9 or clang works; `CC=icc make` for Intel. |
-| `make check` fails | do not run the jobs; send the output of `make check` back. |
-| `sbatch`: "invalid partition / account / memory specification" | add `#SBATCH --partition=…` / `--account=…` or lower `--mem` **and** `--cpus-per-task` together (keep mem ≥ cpus × 3.6 GB + 1 GB). |
-| job log says `allocation failed` or job is killed for memory | the node gave less memory than requested; reduce `--cpus-per-task` (memory scales with threads). |
-| jobs end with `STOPPED BY SIGNAL` in the log | normal: wall-time limit reached, state saved.  `sbatch` the same script again. |
-| `merge_results.py`: "appears twice" | the same (p, job_id) file exists in two places; delete one copy — they are the same samples. |
-| `Illegal instruction` | only possible if someone built with `make native` on a different CPU type; `make clean && make`. |
-
----
-
-## 4. Files
-
-| file | purpose |
-|---|---|
-| `viral_tree_hpc.c` | the program (single C file, OpenMP + libm), with a full description in its preamble |
-| `Makefile` | `make`, `make check`, `make clean` |
-| `check.sh` | self-tests, run by `make check` |
-| `submit_p24.slurm` … `submit_p30.slurm` | one SLURM job array per p, 10⁶ samples each (build if needed, resume if resubmitted) |
-| `params/angles_p<p>.txt` | the trained angles, even p = 2 … 100; `angles_p26.txt` is the one used |
-| `merge_results.py` | adds up all job files, prints the estimate and exact confidence bounds (pure Python 3) |
-| `results/` | output directory (shipped with a README so it exists) |
-| `exact_small_p.py` | independent exact enumeration for p = 1, 2 (needs numpy); used for validation, not needed to run |
-
-Command line of the program:
-
-```
-./viral_tree_hpc <p> <n_samples> [job_id=0] [angles_file=params/angles_p<p>.txt] [out_dir=.]
+```bash
+skip='^(elapsed_s|core_seconds|sec_per_sample_core|host|angles_file) '
+diff <(grep -vE "$skip" results/torch-p24-extension-v2/jobs/viral_tree_p24_job2000.txt) \
+     <(grep -vE "$skip" out/p24-extension-v2/viral_tree_p24_job2000.txt)
 ```
 
-* threads = `OMP_NUM_THREADS` (the job script sets it from `--cpus-per-task`);
-* `job_id`: different ids use disjoint, independent samples — results add;
-  the same id must never be counted twice (`merge_results.py` checks);
-* output `<out_dir>/viral_tree_p<p>_job<job_id>.txt`, rewritten every minute;
-  if it exists at start the run resumes from it (after checking that p, job
-  and the angles file are the same).
+The campaigns themselves were run with the launchers in `scripts/`, which
+freeze a manifest, record every launch and verify completeness; see
+[docs/campaigns.md](docs/campaigns.md#how-the-campaigns-were-run).
 
----
+## Compute resources
 
-## 5. What the output means
+All results were computed on the NYU HPC cluster **Torch** (SLURM) between
+2026-09-19 and 2026-10-09:
 
-```
-x_thresh   0.91xxxx +- 0.00029     <-- c_VIRAL(p) estimate: THIS is the bound
-x_soft     ...                     diagnostic only, not a bound
-```
+- **Hardware:** mostly `cs` nodes, Intel Xeon Platinum 8592+ (128 cores and
+  513 GB per node): 180 of the 221 nodes used. p = 30 million-v1 (60 GB jobs)
+  ran on 7 `cl` nodes, and 104 p = 32 jobs on 34 GPU-partition nodes (CPU only);
+  the CPU models of those nodes are not recorded.
+- **Software:** RHEL 10 (Linux 6.12), glibc 2.39, gcc 14.3.1, libgomp; flags
+  `-Wall -Wextra -DBATCH_MAX_PER_THREAD=1 -O3 -fopenmp` (+ `-ffp-contract=off`
+  for the fast solvers).
+- **Totals:** 5,179 jobs, 160,000,000 samples, **288,739.9 core-hours**
+  (about 33 core-years); 71% of it for p = 32 and 22% for p = 30.
 
-`merge_results.py` also prints exact one-sided Clopper–Pearson lower confidence
-bounds.  The final statement has the form "`M_g ≥ L` for all `g ≥ 2p+2`, at
-99.9 % confidence": the implication `c_VIRAL(p) ≥ L ⟹ M_g ≥ L` is a theorem;
-`L` being a lower confidence bound for `c_VIRAL(p)` is the statistical part.
+| p | jobs (1M + 3M + 6M) | threads per job | memory per job | core-hours | share |
+|---:|---|---|---|---:|---:|
+| 2–16 | 4 per depth (1 + 1 + 2) | 1 | ≤ 2 GB | 5.2 in all | 0.0% |
+| 18 | 7 (4 + 1 + 2) | 1 | ≤ 2 GB | 14.7 | 0.0% |
+| 20 | 25 (16 + 3 + 6) | 1 | ≤ 2 GB | 59.2 | 0.0% |
+| 22 | 100 (64 + 12 + 24) | 1 | ≤ 2 GB | 239.3 | 0.1% |
+| 24 | 140 (50 + 30 + 60) | 1 | ≤ 2 GB | 977.4 | 0.3% |
+| 26 | 325 (100 + 75 + 150) | 1 | 5 GB / 1 GB | 3,763.9 | 1.3% |
+| 28 | 650 (200 + 150 + 300) | 1 | 16 GB / 2 GB | 14,467.6 | 5.0% |
+| 30 | 1,400 (500 + 300 + 600) | 1 / 4 | 60 GB / 6 GB | 64,166.8 | 22.2% |
+| 32 | 2,500 (1,000 + 500 + 1,000) | 1 / 8 | 32 GB / 22 GB | 205,045.8 | 71.0% |
+| **all** | **5,179** | | | **288,739.9** | 100% |
 
----
+Threads and memory are given as million-v1 / extensions. Core-hours are the
+solvers' own count, threads × wall time of the sampling loop summed over saved
+run segments (from the result files); they exclude start-up, work lost when a
+job was killed between checkpoints, queue time, and the build, validation and
+probe jobs. Per campaign (SLURM arrays, nodes, dates, wall times, requested
+resources): [docs/campaigns.md](docs/campaigns.md).
 
-## 6. Validation done before hand-over
+## Validation
 
-* Per-sample output **bit-identical** to the original code used for all
-  results so far, for p = 1 … 20 (~10⁵ samples compared as hex floats).
-* p = 1, 2: Monte Carlo agrees with an independent exact enumeration of all
-  2⁶ / 2¹⁴ seed configurations (`exact_small_p.py`); 1.6·10⁷ samples at p = 2
-  give 0.75566 ± 0.00011 vs exact 0.7556152.
-* `n_cut` identical for 1, 2, 4 threads; identical after SIGTERM-stop/resume
-  and after SIGKILL/resume; identical when a job is extended versus run
-  fresh; wrong p/job/angles/shrink/missing-directory are refused cleanly.
-* Memory at p = 26 measured: 3.53 GiB RSS, exactly the formula.
-* `-O3` vs `-O3 -march=native`: identical counts, identical speed.
-* `merge_results.py` bounds agree with `scipy.stats.beta.ppf` to 10⁻¹³.
+- An exact enumeration of all 2^14 seed configurations at p = 2 gives
+  c_VIRAL(2) = 12380/16384 = 0.7556152; the 10^7-sample estimate is 1.2
+  standard errors away.
+- The three solvers produce the same samples bit for bit, checked on the
+  cluster with whole per-sample dumps for p = 1..26 and at p = 32, at 1 to 32
+  threads, and by a self-check against the reference kernel at the start of
+  every one of the 4,238 fast-solver launches.
+- The 160M samples are distinct: all initial generator states were computed
+  and compared.
+- Every job of every campaign is complete, the merge reproduces
+  `results/merge_10M.txt` and Table I, and the three independent campaigns of
+  each depth are statistically consistent (χ² = 45.7 on 32 degrees of freedom
+  over all depths, p-value 0.05).
 
-Reproducibility: same binary, same machine → bit-identical.  Across
-CPUs/compilers the last bit of `sin`/`cos` can differ, which can flip the sign
-decision of a sample whose `s^z` is within ~10⁻¹⁵ of zero: `n_cut` changes by
-O(1) per million samples.  Harmless.
+Details, job ids and the checks you can run yourself:
+[docs/validation.md](docs/validation.md).
+
+## Provenance
+
+Tag **`results-10M`** (commit `d578d35d80d22aef19900f51c8310809828862a5`) is
+the exact tree that produced the results, including the SLURM stdout logs of
+every job and the planning notes of the campaigns. Since then the solver
+sources have changed only in their comments: `make check-sources` proves that
+they compile to the code that ran, and the manifests' source hashes map to the
+current files as listed in [docs/solvers.md](docs/solvers.md#sources-and-provenance).
