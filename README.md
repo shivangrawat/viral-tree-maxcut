@@ -252,12 +252,3 @@ resources): [docs/campaigns.md](docs/campaigns.md).
 
 Details, job ids and the checks you can run yourself:
 [docs/validation.md](docs/validation.md).
-
-## Provenance
-
-Tag **`results-10M`** (commit `d578d35d80d22aef19900f51c8310809828862a5`) is
-the exact tree that produced the results, including the SLURM stdout logs of
-every job and the planning notes of the campaigns. Since then the solver
-sources have changed only in their comments: `make check-sources` proves that
-they compile to the code that ran, and the manifests' source hashes map to the
-current files as listed in [docs/solvers.md](docs/solvers.md#sources-and-provenance).
