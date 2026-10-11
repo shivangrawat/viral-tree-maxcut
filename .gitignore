@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# solver binaries built by make
+/viral_tree_hpc
+/viral_tree_fast
+/viral_tree_fast2
+
+# scratch output of check.sh and the build lock of the old job scripts
+check_tmp/
+.build.lock
+
+# Python
+__pycache__/
+*.pyc
+
+# SLURM stdout logs of new campaign runs (the as-run logs are in tag results-10M)
+results/**/logs/slurm_*.out
