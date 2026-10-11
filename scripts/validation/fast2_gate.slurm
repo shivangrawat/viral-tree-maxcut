@@ -1,13 +1,17 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
-#  Gate G2 of SUBMIT_4M.md: build the campaign's viral_tree_fast2 binary,
+#  Validation record, as run on NYU Torch for the published campaigns (tag
+#  results-10M).  Cluster-bound: account, /scratch/fm2452 and $HOME/viral-exe-backup
+#  paths are Torch's.  Submit from the repo root.  See docs/validation.md.
+#
+#  Gate G2 (docs/validation.md): build the campaign's viral_tree_fast2 binary,
 #  require it to be byte-for-byte the executable the tests validated, export
 #  it with its .build.json sidecar to $HOME (not flushed), and compare it AT
 #  p=32 with 8 threads against the validated viral_tree_fast binary on the
 #  same samples (per-sample dump and result bytes; threads line normalized).
 #  Prints GATE PASS or GATE FAIL.
 #
-#      sbatch --qos=cpu48 --cpus-per-task=8 --mem=32G --time=01:00:00 scripts/fast2_gate.slurm
+#      sbatch --qos=cpu48 --cpus-per-task=8 --mem=32G --time=01:00:00 scripts/validation/fast2_gate.slurm
 # ---------------------------------------------------------------------------
 #SBATCH --job-name=viral_fast2_gate
 #SBATCH --account=torch_pr_577_general
@@ -16,7 +20,7 @@
 #SBATCH --output=/scratch/fm2452/viral-fast/logs/%x_%j.out
 
 set -uo pipefail
-REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 TAG="${SLURM_JOB_ID:-manual}"
 VALIDATED_EXE_SHA=e18230cf77b905472a985cf9665e2781278a0a98894d0b0acae8b786418cad29
 SOURCE_SHA=8b12711a2b6f15e652a7677c43b80aa6715570ffd28b38d9ec4afdab97251988

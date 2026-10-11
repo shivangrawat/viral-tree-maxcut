@@ -1,12 +1,16 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
-#  Gate G1 of SUBMIT_4M.md: prove that the 3M new samples of every depth are
+#  Validation record, as run on NYU Torch for the published campaigns (tag
+#  results-10M).  Cluster-bound: account, /scratch/fm2452 and $HOME/viral-exe-backup
+#  paths are Torch's.  Submit from the repo root.  See docs/validation.md.
+#
+#  Gate G1 (docs/validation.md): prove that the 3M new samples of every depth are
 #  new.  (1) Static: the extension's job ids must not overlap the 1M campaign's
 #  ids, nor any result file of that depth anywhere under results/.  (2) For
 #  every sample of both campaigns of every depth (64M in all) compute the
 #  solver's initial RNG state and require all of them to be distinct.
 #
-#      sbatch --qos=cpu48 --mem=4G --time=01:00:00 scripts/seed_audit.slurm   (from the repo root)
+#      sbatch --qos=cpu48 --mem=4G --time=01:00:00 scripts/validation/seed_audit.slurm   (from the repo root)
 # ---------------------------------------------------------------------------
 #SBATCH --job-name=viral_seed_audit
 #SBATCH --account=torch_pr_577_general
@@ -16,7 +20,7 @@
 #SBATCH --output=/scratch/fm2452/viral-fast/logs/%x_%j.out
 
 set -uo pipefail
-REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 RUN="${SCRATCH:?}/viral-fast/seed-audit-${SLURM_JOB_ID:-manual}"
 cd "$REPO" || exit 1
 mkdir -p "$RUN"

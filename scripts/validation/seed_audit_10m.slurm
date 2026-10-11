@@ -1,6 +1,13 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
-#  Gate G1' of SUBMIT_10M.md: prove that the 6M new samples of every depth
+#  Validation record, as run on NYU Torch for the published campaigns (tag
+#  results-10M).  Cluster-bound: account, /scratch/fm2452 and $HOME/viral-exe-backup
+#  paths are Torch's.  Submit from the repo root.  See docs/validation.md.
+#
+#  Pre-launch gate: it requires that extension-v2 has no result files yet, so on
+#  the final tree it reports SEED AUDIT FAIL by design.
+#
+#  Gate G1' (docs/validation.md): prove that the 6M new samples of every depth
 #  (torch-pP-extension-v2) are new.  (1) Static: for every even depth the three
 #  campaigns million-v1 (1M), extension-v1 (3M) and extension-v2 (6M) use the
 #  same angles, pairwise disjoint contiguous job ids and the planned targets;
@@ -10,7 +17,7 @@
 #  solver's initial RNG state and require all of them to be distinct
 #  (tests/seed_audit.c, unchanged from G1).
 #
-#      sbatch --qos=cpu48 --mem=16G --time=02:00:00 scripts/seed_audit_10m.slurm   (from the repo root)
+#      sbatch --qos=cpu48 --mem=16G --time=02:00:00 scripts/validation/seed_audit_10m.slurm   (from the repo root)
 #  (160M states x 32 B = 5.1 GB, and glibc qsort adds a same-size merge buffer: 8G is OOM-killed)
 # ---------------------------------------------------------------------------
 #SBATCH --job-name=viral_seed_audit_10m
@@ -21,7 +28,7 @@
 #SBATCH --output=/scratch/fm2452/viral-fast/logs/%x_%j.out
 
 set -uo pipefail
-REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 RUN="${SCRATCH:?}/viral-fast/seed-audit-10m-${SLURM_JOB_ID:-manual}"
 cd "$REPO" || exit 1
 mkdir -p "$RUN"

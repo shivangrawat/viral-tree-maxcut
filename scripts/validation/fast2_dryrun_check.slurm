@@ -1,13 +1,17 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
-#  Gate G4 of SUBMIT_4M.md: after a tiny campaign has run through the real
+#  Validation record, as run on NYU Torch for the published campaigns (tag
+#  results-10M).  Cluster-bound: account, /scratch/fm2452 and $HOME/viral-exe-backup
+#  paths are Torch's.  Submit from the repo root.  See docs/validation.md.
+#
+#  Gate G4 (docs/validation.md): after a tiny campaign has run through the real
 #  launch path (fast2_campaign.py init + an array of run_viral_fast2.slurm
 #  with threads), verify it and require every result file to equal the
 #  frozen viral_tree_hpc binary's output for the same job ids (all bytes but
 #  the timing fields; the threads line normalized).  Prints DRYRUN PASS/FAIL.
 #
 #      sbatch --dependency=afterok:<array> --qos=cpu48 --mem=1G --time=00:30:00 \
-#             scripts/fast2_dryrun_check.slurm CAMPAIGN_DIR
+#             scripts/validation/fast2_dryrun_check.slurm CAMPAIGN_DIR
 # ---------------------------------------------------------------------------
 #SBATCH --job-name=viral_fast2_dryrun_check
 #SBATCH --account=torch_pr_577_general
@@ -18,7 +22,7 @@
 
 set -uo pipefail
 OUT="${1:?usage: fast2_dryrun_check.slurm CAMPAIGN_DIR}"
-REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 FROZEN="$HOME/viral-exe-backup/torch-large-builds-17989395/viral_baseline"
 cd "$REPO" || exit 1
 python3 scripts/fast2_campaign.py verify "$OUT" || { echo "DRYRUN FAIL (verify)"; exit 1; }

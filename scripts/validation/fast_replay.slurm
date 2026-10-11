@@ -1,12 +1,16 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
-#  R3 of SPEEDUP_PLAN.md: replay one COMMITTED campaign job with the fast
+#  Validation record, as run on NYU Torch for the published campaigns (tag
+#  results-10M).  Cluster-bound: account, /scratch/fm2452 and $HOME/viral-exe-backup
+#  paths are Torch's.  Submit from the repo root.  See docs/validation.md.
+#
+#  Check R3 (docs/validation.md): replay one COMMITTED campaign job with the fast
 #  solver and require every scientific byte of the result file to equal the
 #  committed one (all fields except elapsed_s, core_seconds,
 #  sec_per_sample_core, host).  The angles path is taken verbatim from the
 #  committed file.  Prints REPLAY PASS or REPLAY FAIL.
 #
-#      sbatch --mem=8G --time=16:00:00 scripts/fast_replay.slurm EXE P JOB
+#      sbatch --mem=8G --time=16:00:00 scripts/validation/fast_replay.slurm EXE P JOB
 # ---------------------------------------------------------------------------
 #SBATCH --job-name=viral_fast_r3
 #SBATCH --account=torch_pr_577_general
@@ -20,7 +24,7 @@ set -uo pipefail
 EXE="${1:?usage: fast_replay.slurm EXE P JOB}"
 P="${2:?need depth}"
 JOB="${3:?need job id}"
-REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 COMMITTED="$REPO/results/torch-p$P-million-v1/jobs/viral_tree_p${P}_job$JOB.txt"
 RUN="${SCRATCH:?SCRATCH must be set}/viral-fast/replay-p$P-job$JOB-${SLURM_JOB_ID:-manual}"
 [ -x "$EXE" ] || { echo "not executable: $EXE" >&2; exit 2; }

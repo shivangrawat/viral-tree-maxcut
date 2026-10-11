@@ -1,12 +1,16 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
+#  Validation record, as run on NYU Torch for the published campaigns (tag
+#  results-10M).  Cluster-bound: account, /scratch/fm2452 and $HOME/viral-exe-backup
+#  paths are Torch's.  Submit from the repo root.  See docs/validation.md.
+#
 #  Validation of viral_tree_fast2.c (threads inside a sample + fused kernel)
 #  on a compute node.
 #
 #      suite:  sbatch --job-name=viral_fast2_suite --cpus-per-task=8 --mem=8G \
-#                     --time=03:00:00 scripts/fast2_validate.slurm suite
+#                     --time=03:00:00 scripts/validation/fast2_validate.slurm suite
 #      large:  sbatch --job-name=viral_fast2_large --cpus-per-task=8 --mem=8G \
-#                     --time=01:30:00 scripts/fast2_validate.slurm large
+#                     --time=01:30:00 scripts/validation/fast2_validate.slurm large
 #
 #  suite compares against the frozen campaign binary for p = 1..24 at 1, 4
 #  and 8 threads; large compares against the validated viral_tree_fast at
@@ -23,7 +27,7 @@
 
 set -uo pipefail
 MODE="${1:-}"
-REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 OUT="${SCRATCH:?SCRATCH must be set}/viral-fast"
 FROZEN="$HOME/viral-exe-backup/torch-large-builds-17989395/viral_baseline"
 FAST="$HOME/viral-exe-backup/fast-builds-18517761/viral_fast"

@@ -1,11 +1,15 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
-#  Step 0 gate: build and validate the controlled VIRAL executable on a Torch
-#  compute node.  The login node has no C toolchain at all, and the committed
-#  build/viral_tree_hpc is a Mach-O arm64 Mac binary with no .build.json
-#  sidecar, so this job is the only way to obtain a usable executable.
+#  Validation record, as run on NYU Torch for the published campaigns (tag
+#  results-10M).  Cluster-bound: account, /scratch/fm2452 and $HOME/viral-exe-backup
+#  paths are Torch's.  Submit from the repo root.  See docs/validation.md.
 #
-#      sbatch scripts/torch_build_validate.slurm            (from the repo root)
+#  Step 0 gate: build and validate the controlled VIRAL executable on a Torch
+#  compute node.  The login node has no C toolchain at all, so this job is the
+#  only way to obtain a usable executable with the .build.json sidecar that
+#  scripts/viral_campaign.py requires.
+#
+#      sbatch scripts/validation/torch_build_validate.slurm            (from the repo root)
 #
 #  Exports validated builds plus the .build.json sidecars that
 #  scripts/viral_campaign.py requires.  Nothing downstream may run until this
@@ -27,7 +31,7 @@
 
 set -uo pipefail
 
-REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 WORK="${SCRATCH:?SCRATCH must be set}/viral-controlled"
 TAG="${SLURM_JOB_ID:-manual}"
 REPORT="$WORK/torch-small-$TAG.json"

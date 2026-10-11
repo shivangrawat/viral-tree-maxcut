@@ -1,5 +1,9 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
+#  Validation record, as run on NYU Torch for the published campaigns (tag
+#  results-10M).  Cluster-bound: account, /scratch/fm2452 and $HOME/viral-exe-backup
+#  paths are Torch's.  Submit from the repo root.  See docs/validation.md.
+#
 #  Single-job probes for the large depths (p = 28, 30).  These are NOT
 #  campaigns: they measure what the p>=28 estimates are weakest on, namely real
 #  peak RSS and a real Torch sample rate.  Memory and time come from the sbatch
@@ -8,15 +12,15 @@
 #  Equivalence spot-check (needs the p=30 workspace, so 60G):
 #    sbatch --account=torch_pr_577_general --mem=60G --time=04:00:00 \
 #      --output=/scratch/fm2452/viral-controlled/logs/spot_%j.out \
-#      scripts/probe_large_p.slurm spot gcc
+#      scripts/validation/probe_large_p.slurm spot gcc
 #
 #  Peak-RSS + rate probe (one per depth; p=28 -> 16G, p=30 -> 60G):
 #    sbatch --account=torch_pr_577_general --mem=16G --time=01:00:00 \
 #      --output=/scratch/fm2452/viral-controlled/logs/rss28_%j.out \
-#      scripts/probe_large_p.slurm rss "$VIRAL_EXE" 28
+#      scripts/validation/probe_large_p.slurm rss "$VIRAL_EXE" 28
 #    sbatch --account=torch_pr_577_general --mem=60G --time=04:00:00 \
 #      --output=/scratch/fm2452/viral-controlled/logs/rss30_%j.out \
-#      scripts/probe_large_p.slurm rss "$VIRAL_EXE" 30
+#      scripts/validation/probe_large_p.slurm rss "$VIRAL_EXE" 30
 #
 #  Each RSS probe writes into a FRESH directory on purpose: re-running into a
 #  complete directory does no sampling and would report a misleading number.
@@ -30,7 +34,7 @@
 
 set -uo pipefail
 
-REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 WORK="${SCRATCH:?SCRATCH must be set}/viral-controlled"
 TAG="${SLURM_JOB_ID:-manual}"
 MODE="${1:-}"

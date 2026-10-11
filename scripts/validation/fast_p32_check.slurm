@@ -1,5 +1,9 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
+#  Validation record, as run on NYU Torch for the published campaigns (tag
+#  results-10M).  Cluster-bound: account, /scratch/fm2452 and $HOME/viral-exe-backup
+#  paths are Torch's.  Submit from the repo root.  See docs/validation.md.
+#
 #  Direct p=32 check: the frozen viral_tree_hpc binary against the fast solver
 #  AT p=32 itself, on the same samples (the first N samples of campaign job
 #  JOB), with the R1 contract: the whole per-sample VIRAL_TREE_DUMP (cut and
@@ -7,7 +11,7 @@
 #  timing fields must be identical.  Prints P32 CHECK PASS or P32 CHECK FAIL.
 #
 #  The frozen binary needs 226 GiB at p=32, hence --mem=240G (routed to cl).
-#      sbatch --qos=cpu48 --mem=240G --time=01:30:00 scripts/fast_p32_check.slurm [N] [JOB]
+#      sbatch --qos=cpu48 --mem=240G --time=01:30:00 scripts/validation/fast_p32_check.slurm [N] [JOB]
 # ---------------------------------------------------------------------------
 #SBATCH --job-name=viral_p32_check
 #SBATCH --account=torch_pr_577_general
@@ -19,7 +23,7 @@
 set -uo pipefail
 N="${1:-4}"
 JOB="${2:-0}"
-REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 FROZEN="$HOME/viral-exe-backup/torch-large-builds-17989395/viral_baseline"
 FAST="$HOME/viral-exe-backup/fast-builds-18517761/viral_fast"
 ANGLES="$REPO/params/angles_p32.txt"

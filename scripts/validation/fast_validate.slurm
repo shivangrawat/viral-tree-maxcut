@@ -1,13 +1,17 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
-#  R1 / R2 of SPEEDUP_PLAN.md.  Builds viral_tree_fast.c (and the protected
+#  Validation record, as run on NYU Torch for the published campaigns (tag
+#  results-10M).  Cluster-bound: account, /scratch/fm2452 and $HOME/viral-exe-backup
+#  paths are Torch's.  Submit from the repo root.  See docs/validation.md.
+#
+#  Checks R1 / R2 (docs/validation.md).  Builds viral_tree_fast.c (and the protected
 #  reference) on a compute node - the login node has no C toolchain - and runs
 #  tests/test_fast_equivalence.py against the frozen campaign binary.
 #
 #      R1 equivalence:  sbatch --job-name=viral_fast_r1 --cpus-per-task=4 --mem=8G \
-#                              --time=02:00:00 scripts/fast_validate.slurm suite
+#                              --time=02:00:00 scripts/validation/fast_validate.slurm suite
 #      R2 benchmark:    sbatch --job-name=viral_fast_r2 --cpus-per-task=1 --mem=16G \
-#                              --time=02:00:00 scripts/fast_validate.slurm bench
+#                              --time=02:00:00 scripts/validation/fast_validate.slurm bench
 #
 #  Reports and logs go to $SCRATCH/viral-fast/.  R1's four CPUs are only for
 #  the original check.sh, which has a four-thread test.  R2 needs 16G for the
@@ -24,7 +28,7 @@
 
 set -uo pipefail
 MODE="${1:-}"
-REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 OUT="${SCRATCH:?SCRATCH must be set}/viral-fast"
 FROZEN="$HOME/viral-exe-backup/torch-large-builds-17989395/viral_baseline"
 TAG="${SLURM_JOB_ID:-manual}"
