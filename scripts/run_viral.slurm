@@ -1,5 +1,7 @@
 #!/bin/bash
-# Submit from the repository root; see CODEX_HPC_HANDOFF.md.
+# SLURM array task wrapper of scripts/viral_campaign.py: one CPU, one OpenMP
+# thread, the frozen viral_tree_hpc build (campaigns million-v1, p = 2..30).
+# Submit from the repository root; see docs/campaigns.md.
 # Arguments: depth samples-per-job angles-file executable campaign-directory
 # Supply --array, --mem, --time, --account and --output at submission time.
 #SBATCH --job-name=viral_tree

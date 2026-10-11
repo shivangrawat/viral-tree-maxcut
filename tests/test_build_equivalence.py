@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
 """Build the unchanged solver, require exact bytes, and optionally benchmark.
 
+Compiles viral_tree_hpc.c with the campaign flags under each tuning profile
+and requires every build to reproduce the baseline build byte for byte: whole
+per-sample dumps and result files for p = 1..16, repeats, extension,
+SIGTERM/SIGKILL resume, the campaign wrapper (scripts/run_viral.slurm with fake
+SLURM variables), merge_results.py and check.sh.  This is the suite behind the
+campaign build of viral_tree_hpc (scripts/validation/torch_build_validate.slurm).
+
+    python3 tests/test_build_equivalence.py                         (Linux, gcc)
+    python3 tests/test_build_equivalence.py --omp-root <libomp prefix>   (macOS)
+
 No third-party Python packages. Default tests stop at p=16. All solver builds,
 results, dumps, and original self-test fixtures live in a temporary directory.
 Use --export-builds NEW_DIR to retain validated binaries and build sidecars.
@@ -48,6 +58,7 @@ def source_guard(path=SOURCE):
 
 
 def equal_bytes(expected, actual, label):
+    """Raise AssertionError, with a unified diff, unless the two byte strings are identical."""
     if expected != actual:
         diff = "".join(difflib.unified_diff(expected.decode().splitlines(True),
                                           actual.decode().splitlines(True),
@@ -56,6 +67,7 @@ def equal_bytes(expected, actual, label):
 
 
 def environment():
+    """Environment of a strict run: one OpenMP thread, no dump file, C locale."""
     env = os.environ.copy()
     env.pop("VIRAL_TREE_DUMP", None)
     env.update(OMP_NUM_THREADS="1", OMP_DYNAMIC="FALSE", OMP_PROC_BIND="FALSE", LC_ALL="C")
@@ -63,11 +75,18 @@ def environment():
 
 
 def capture(command, **kwargs):
+    """Run a command; return its combined stdout and stderr (raise if it fails)."""
     return subprocess.check_output([str(x) for x in command], stderr=subprocess.STDOUT,
                                    text=True, **kwargs)
 
 
 def compile_build(args, work, profile):
+    """Compile viral_tree_hpc.c with the campaign flags plus one tuning profile.
+
+    Returns (executable, sidecar dict), or (None, diagnostic) when a non-baseline
+    profile is not supported by the compiler.  On macOS the binary is relinked to
+    the libomp of --omp-root and re-signed.
+    """
     exe = work / ("viral_" + profile)
     flags = ["-Wall", "-Wextra", "-DBATCH_MAX_PER_THREAD=1"] + PROFILES[profile]
     if args.omp_root:
@@ -104,10 +123,15 @@ def compile_build(args, work, profile):
 
 
 def result_path(out, p, job):
+    """Path of the result file of (p, job) in out."""
     return out / ("viral_tree_p%d_job%d.txt" % (p, job))
 
 
 def run_solver(exe, p, samples, job, angles, out, dump=False, timeout=300):
+    """Run one job single-threaded and require a complete result.
+
+    Returns (scientific bytes of the result, per-sample dump or b"", seconds, log).
+    """
     out.mkdir(parents=True, exist_ok=True)
     env = environment()
     if dump:
@@ -124,6 +148,8 @@ def run_solver(exe, p, samples, job, angles, out, dump=False, timeout=300):
 
 
 def test_cases(work, args):
+    """The strict cases (p, n, job, angles): p = 1 and even p <= 16, jobs 0, 7, 499 and
+    2^31-1, the p=30 angles file as a prefix for small p, and any opt-in spot depths."""
     p1 = work / "angles_p1.txt"
     # An explicit one-layer fixture using the supplied p=2 alpha and first row.
     p1.write_bytes(b"\n".join((ROOT / "params/angles_p2.txt").read_bytes().splitlines()[:4]) + b"\n")
@@ -144,6 +170,10 @@ def test_cases(work, args):
 
 
 def strict_cases(exe, work, cases, expected=None):
+    """Run every case with the per-sample dump; with `expected`, require identical bytes.
+
+    Returns the observed (result, dump) pairs.
+    """
     observed = []
     for i, (p, n, job, angles) in enumerate(cases):
         result, dump, _, _ = run_solver(exe, p, n, job, angles, work / str(i), dump=True)
@@ -158,6 +188,11 @@ def strict_cases(exe, work, cases, expected=None):
 
 
 def resume_checks(exe, work):
+    """Repeat, extend, rerun-complete, SIGTERM and SIGKILL resume at p=12.
+
+    Every path must end byte-identical to a fresh run.  Returns (fresh result,
+    fresh dump, interruption records).
+    """
     p, job, n = 12, 13, 4096
     angles = ROOT / "params/angles_p12.txt"
     fresh, dump, _, _ = run_solver(exe, p, n, job, angles, work / "fresh", dump=True)
@@ -219,6 +254,12 @@ def resume_checks(exe, work):
 
 
 def campaign_checks(exe, info, work):
+    """End-to-end campaign path on a tiny campaign; returns the merge report.
+
+    init, two tasks of scripts/run_viral.slurm with fake SLURM variables (each equal
+    to a direct run), verify, merge_results.py, and the verifier's detection of a
+    missing, an altered and a duplicate file and of a wrong CPU count.
+    """
     sidecar = Path(str(exe) + ".build.json")
     sidecar.write_text(json.dumps(info, indent=2) + "\n")
     out = work / "campaign"
@@ -260,26 +301,33 @@ def campaign_checks(exe, info, work):
 
 
 class ComparatorTests(unittest.TestCase):
+    """Unit tests of the result-file comparator and of the source guard."""
+
     def setUp(self):
+        """A minimal result file with every field set to 1."""
         self.data = b"# comment\n" + b"".join(k + b" 1\n" for k in sorted(campaign.FIELDS))
 
     def test_only_four_volatile_fields_excluded(self):
+        """Changing a field changes the scientific bytes unless the field is volatile."""
         for field in campaign.FIELDS:
             changed = self.data.replace(field + b" 1\n", field + b" 2\n")
             self.assertEqual(campaign.scientific_bytes(self.data) == campaign.scientific_bytes(changed),
                              field in campaign.VOLATILE, field)
 
     def test_float_spelling_and_whitespace_preserved(self):
+        """Any change in how soft_sum is spelled is a difference."""
         for value in (b"1.0", b"1.0000000000000002", b"+1", b" 1"):
             self.assertNotEqual(campaign.scientific_bytes(self.data),
                                 campaign.scientific_bytes(self.data.replace(b"soft_sum 1", b"soft_sum " + value)))
 
     def test_missing_and_duplicate_fields_rejected(self):
+        """A result file with a missing or a repeated field is rejected."""
         for bad in (self.data.replace(b"soft_sum 1\n", b""), self.data + b"soft_sum 1\n"):
             with self.assertRaises(ValueError):
                 campaign.scientific_bytes(bad)
 
     def test_source_guard(self):
+        """The guard accepts the repository source and refuses any other."""
         source_guard()
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "altered.c"
@@ -288,11 +336,13 @@ class ComparatorTests(unittest.TestCase):
                 source_guard(path)
 
     def test_hex_dump_comparison_is_exact(self):
+        """-0 and +0 in a dump are different bytes."""
         with self.assertRaises(AssertionError):
             equal_bytes(b"0 1 -0x0p+0 0x1p-1\n", b"0 1 0x0p+0 0x1p-1\n", "signed zero")
 
 
 def original_checks(exe, work):
+    """Run check.sh on exe in an isolated copy (as ./viral_tree_hpc, 4 threads); return its log."""
     fixture = work / "original_self_tests"
     fixture.mkdir()
     for name in ("check.sh", "merge_results.py"):
@@ -357,6 +407,7 @@ def benchmark(builds, work, min_seconds):
 
 
 def main():
+    """Guard the source, unit-test the comparator, build each profile and run every check."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--cc", default="clang" if sys.platform == "darwin" else "gcc")
     parser.add_argument("--omp-root", type=Path, help="macOS LLVM OpenMP prefix with include/omp.h and lib/libomp.dylib")

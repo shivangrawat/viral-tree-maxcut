@@ -1,6 +1,7 @@
 #!/bin/bash
 # run_viral.slurm for campaigns with the validated fast solver: identical,
-# except that the launcher is scripts/fast_campaign.py.  See SUBMIT_P32.md.
+# except that the launcher is scripts/fast_campaign.py (p = 32 million-v1).
+# See docs/campaigns.md.
 # Arguments: depth samples-per-job angles-file executable campaign-directory
 # Supply --array, --qos, --mem, --time, --account and --output at submission time.
 #SBATCH --job-name=viral_fast

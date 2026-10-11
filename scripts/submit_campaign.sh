@@ -1,6 +1,7 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
-#  Resource table + launcher for the VIRAL p = 2..30 campaigns on NYU Torch.
+#  Resource table + launcher for the VIRAL p = 2..30 campaigns on NYU Torch
+#  (results/torch-pP-million-v1; record: docs/campaigns.md).
 #
 #      export VIRAL_EXE=/scratch/fm2452/viral-controlled/torch-small-builds-<id>/viral_baseline
 #      scripts/submit_campaign.sh plan                  # print the table, submit nothing
@@ -19,7 +20,8 @@
 #  Memory is exact: workspace = 56.5 * 2^p - 48 bytes PER PROCESS.
 #  Time model, MEASURED on Torch (job 17985393, gcc 14.3.1, cs611, 1 thread):
 #    t(16) = 2.40e-3 s/sample/core, scaling 1.90-1.97x per unit p.  Walltimes
-#    below use the SLOWER README Intel rates at p>=22 as a safety margin.
+#    below use the SLOWER Intel i9 rates of the original hand-over README at
+#    p>=22 as a safety margin.
 #  Wall time is soft: the solver checkpoints every 60 s and resubmitting resumes.
 #
 #  p=28 walltime/memory come from a MEASURED Torch probe (job 17989534, cs601,
@@ -28,14 +30,14 @@
 #  ~25 h on the slowest observed; 48:00:00 is the cpu48 QoS maximum and leaves
 #  ~2x margin.  Depth scaling measured across p=16..30 is ~3.9x per +2 in p.
 #
-#  p=30 is DRAFTED BUT NOT SUBMITTED - see scripts/SUBMIT_P30.md before running
-#  it.  Measured probe (job 17989535, cs614, 1 thread): 59.422 s/sample/core and
+#  p=30 ran 2026-09-20 .. 10-05 (its submission is recorded in docs/campaigns.md).
+#  Measured probe (job 17989535, cs614, 1 thread): 59.422 s/sample/core and
 #  56.502 GiB peak RSS against a 56.500 GiB predicted workspace.  CONC=100 is a
 #  hard ceiling, not a preference: the cpu48 QoS allows 6000G per user and each
 #  job needs 60G.  ~14% of jobs are expected to exceed the 48 h wall and need
 #  one 'resume' round; that is normal and costs time, not samples.
 #
-#  p=24, p=26, p=28 and p=30 partitions are FROZEN by CODEX_HPC_HANDOFF.md:
+#  p=24, p=26, p=28 and p=30 partitions are FROZEN (docs/campaigns.md):
 #  sample k of job j is S=(j<<32)|k, so re-partitioning picks a different
 #  sample set.
 # ---------------------------------------------------------------------------

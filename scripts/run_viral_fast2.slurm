@@ -2,7 +2,7 @@
 # run_viral_fast.slurm for viral_tree_fast2 campaigns: the job's CPUs are the
 # threads inside each sample (OMP_NUM_THREADS = --cpus-per-task), and
 # scripts/fast2_campaign.py refuses to launch unless that equals the
-# campaign's frozen thread count.  See scripts/SUBMIT_4M.md.
+# campaign's frozen thread count (extension campaigns).  See docs/campaigns.md.
 # Arguments: depth samples-per-job angles-file executable campaign-directory
 # Supply --array, --qos, --cpus-per-task, --mem, --time, --account, --output.
 #SBATCH --job-name=viral_fast2

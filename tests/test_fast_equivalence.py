@@ -5,9 +5,9 @@ Reference: the frozen campaign executable (--reference-exe) or, by default, a
 fresh build of the protected viral_tree_hpc.c with the campaign flags.
 Candidate: viral_tree_fast.c built with the same compiler.  Every case compares
 the whole per-sample VIRAL_TREE_DUMP file and every byte of the result file
-except elapsed_s, core_seconds, sec_per_sample_core and host - the contract of
-CODEX_HPC_HANDOFF.md section 1.  Standard library only; run it on a compute
-node (the login node has no C toolchain).
+except elapsed_s, core_seconds, sec_per_sample_core and host (the exactness
+contract of docs/validation.md).  Standard library only; needs gcc with
+-fopenmp.  On the cluster it ran through scripts/validation/fast_validate.slurm.
 
     R1:  python3 tests/test_fast_equivalence.py --reference-exe FROZEN_EXE
     R2:  python3 tests/test_fast_equivalence.py --reference-exe FROZEN_EXE --no-suite \\
@@ -63,6 +63,7 @@ def predicted_bytes(p):
 
 
 def cpu_model():
+    """CPU model name from /proc/cpuinfo (Linux), else platform.processor()."""
     try:
         for line in Path("/proc/cpuinfo").read_text().splitlines():
             if line.startswith("model name"):
@@ -83,6 +84,7 @@ def fma_count(exe):
 
 
 def compile_fast(cc, work):
+    """Compile viral_tree_fast.c with FAST_FLAGS; returns (executable, build info)."""
     exe = work / "viral_fast"
     command = [cc] + FAST_FLAGS + [str(FAST_SOURCE), "-lm", "-o", str(exe)]
     built = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -126,6 +128,8 @@ def run(exe, p, n, job, angles, out, dump=False, extra_env=None, timeout=3600):
 
 
 def suite_cases(max_p):
+    """Cases (p, n, job, angles) for p = 1..max_p, plus many samples at the smallest
+    table-kernel depths and a longer angles file read only in part."""
     cases = []
     for p in range(1, max_p + 1):
         if p <= 12:
@@ -145,6 +149,10 @@ def suite_cases(max_p):
 
 
 def compare(ref, fast, case, work, tag, fast_env=None):
+    """Run one case with both binaries and require identical result and dump bytes.
+
+    Returns (label, reference seconds, fast seconds, fast log).
+    """
     p, n, job, angles = case
     label = "p=%d n=%d job=%d %s%s" % (p, n, job, angles.name, " " + tag if tag else "")
     r_res, r_dump, r_t, _ = run(ref, p, n, job, angles, work / "ref", dump=True)
@@ -157,6 +165,8 @@ def compare(ref, fast, case, work, tag, fast_env=None):
 
 
 def run_suite(ref, fast, args, work):
+    """The equivalence suite (R1): every case, VIRAL_FORCE_REF, a 5000-sample self-check,
+    the stop/resume protocol and check.sh.  Returns a summary dict."""
     summary = dict(cases=0, depths={})
     for case in suite_cases(args.max_p):
         label, r_t, f_t, log = compare(ref, fast, case, work, "")
@@ -232,6 +242,10 @@ def timed(exe, p, n, job, angles, out):
 
 
 def run_benchmark(ref, fast, depths, fast_only, reps, work):
+    """Time both binaries (R2), interleaved over reps, requiring identical results.
+
+    Returns per-depth medians of s/sample and wall time, peak RSS and the speedups.
+    """
     results = {}
     for p in depths + [q for q in fast_only if q not in depths]:
         n = BENCH_SAMPLES.get(p, 1)
@@ -273,6 +287,7 @@ def run_benchmark(ref, fast, depths, fast_only, reps, work):
 
 
 def main():
+    """Build both binaries, run the suite and/or the benchmark, write the optional report."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--cc", default="gcc")
     parser.add_argument("--reference-exe", type=Path,

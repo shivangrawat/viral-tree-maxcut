@@ -1,5 +1,27 @@
 #!/usr/bin/env python3
-"""Freeze, inspect, and launch one-process VIRAL campaigns (standard library only)."""
+"""Freeze, inspect, and launch one-process VIRAL campaigns (standard library only).
+
+A campaign is a directory OUT with manifest.json (depth, samples per job, the
+expected job ids, the angles and the validated executable with its build
+sidecar), provenance.txt, jobs/ (the solver's result files) and logs/ (one
+provenance record per launch).  Commands:
+
+  init    --p P --samples N --jobs J [--first-id F] --exe EXE [--angles A] --out OUT
+          freeze a new campaign; OUT must be new or empty
+  run     --p P --samples N --exe EXE [--angles A] --out OUT
+          launch SLURM array task $SLURM_ARRAY_TASK_ID as job id: check it against
+          the manifest, append a provenance record, exec the solver (1 CPU, 1 thread)
+  status  OUT    print the campaign state as JSON
+  verify  OUT    the same, and exit 1 unless every job is complete and valid
+  pending OUT    print the job ids still to run, comma-separated (for resubmission)
+
+EXE needs a .build.json sidecar from a validated build (tests/test_build_equivalence.py
+--export-builds, scripts/validation/).  load_campaign() re-reads the absolute paths
+frozen in the manifest, so status/verify/pending of the published campaigns work on
+the original cluster only; merge_results.py works anywhere.  fast_campaign.py,
+fast2_campaign.py, the tests and some validation gates import this module.  The
+published campaigns and their commands: docs/campaigns.md.
+"""
 
 import argparse
 import hashlib
@@ -31,10 +53,12 @@ FIELDS = set(b"status p job n_target n_done n_cut soft_sum x_thresh stderr x_sof
 
 
 def sha256(path):
+    """Hex sha256 of a file."""
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def angles_hash(path):
+    """64-bit FNV-1a hash of a file as 16 hex digits: the solvers' angles_hash."""
     value = 14695981039346656037
     for byte in Path(path).read_bytes():
         value = ((value ^ byte) * 1099511628211) & ((1 << 64) - 1)
@@ -57,6 +81,7 @@ def read_fields(data):
 
 
 def scientific_bytes(data):
+    """A result file without its VOLATILE lines (timing, host): the bytes that must reproduce."""
     read_fields(data)
     return b"".join(line for line in data.splitlines(keepends=True)
                     if not line.split() or line.split()[0] not in VOLATILE)
@@ -68,6 +93,12 @@ def campaign_source_sha(sha):
 
 
 def build_info(executable):
+    """Load and check the .build.json sidecar of a validated build of the campaign source.
+
+    Raises ValueError unless the sidecar names the campaign source (or its documented
+    copy), matches the executable's sha256, records -DBATCH_MAX_PER_THREAD=1 and a passed
+    equivalence check, and was built for this OS and machine.  Returns the sidecar dict.
+    """
     executable = Path(executable).resolve()
     info = json.loads(Path(str(executable) + ".build.json").read_text())
     if campaign_source_sha(info["source_sha256"]) != SOURCE_SHA256:
@@ -82,6 +113,7 @@ def build_info(executable):
 
 
 def paths(args):
+    """Resolve (angles, executable, out); refuse paths the solver's fixed-size buffers cannot hold."""
     angles = (Path(args.angles) if args.angles else
               Path(__file__).resolve().parents[1] / "params" / ("angles_p%d.txt" % args.p))
     if not args.angles and (args.p % 2 or not 2 <= args.p <= 30):
@@ -96,6 +128,7 @@ def paths(args):
 
 
 def initialize(args):
+    """init: freeze a new campaign in args.out (manifest.json, provenance.txt, jobs/, logs/)."""
     angles, executable, out = paths(args)
     info = build_info(executable)
     if not 1 <= args.p <= 40 or not 1 <= args.samples <= 4294967295:
@@ -124,6 +157,7 @@ def initialize(args):
 
 
 def load_campaign(out):
+    """Read out/manifest.json and check that its angles file and build are still the frozen ones."""
     manifest = json.loads((out / "manifest.json").read_text())
     if manifest["schema"] != 1:
         raise ValueError("unknown campaign schema")
@@ -136,6 +170,11 @@ def load_campaign(out):
 
 
 def inspect_campaign(out):
+    """status / verify / pending: check every file in out/jobs against the manifest.
+
+    Returns a dict with the expected and present job counts, the missing and
+    incomplete ids, samples done and targeted, per-file errors and `complete`.
+    """
     manifest = load_campaign(out)
     p, n = manifest["p"], manifest["samples_per_job"]
     expected = set(manifest["expected_job_ids"])
@@ -173,6 +212,7 @@ def inspect_campaign(out):
 
 
 def launch(args):
+    """run: check this array task against the manifest, log provenance and exec the solver (no return)."""
     angles, executable, out = paths(args)
     m = load_campaign(out)
     job = int(os.environ["SLURM_ARRAY_TASK_ID"])
@@ -202,7 +242,8 @@ def launch(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    """Command-line entry point; returns the exit status."""
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("init", "run"):
         p = sub.add_parser(name)

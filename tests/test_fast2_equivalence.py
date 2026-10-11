@@ -11,7 +11,9 @@ large : against the validated viral_tree_fast binary at p=26, 28, 30 with 1, 2,
 Every comparison covers the whole per-sample VIRAL_TREE_DUMP and every byte of
 the result file except the four timing fields.  The one exception: with T > 1
 threads the `threads` line says T, so that line alone is normalized.
-Standard library only; run it on a compute node.
+Standard library only; needs gcc with -fopenmp and the two reference binaries,
+which are identified by their sha256, so in practice it runs on the cluster
+that built them (scripts/validation/fast2_validate.slurm, docs/validation.md).
 """
 
 import argparse
@@ -34,6 +36,7 @@ sys.dont_write_bytecode = True
 
 
 def _load(name, path):
+    """Import a Python file as a module under the given name."""
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -52,6 +55,7 @@ GIB = 1024.0 ** 3
 
 
 def compile_fast2(cc, work):
+    """Compile viral_tree_fast2.c with FLAGS; returns (executable, build info)."""
     exe = work / "viral_fast2"
     command = [cc] + FLAGS + [str(SOURCE), "-lm", "-o", str(exe)]
     built = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -70,6 +74,10 @@ def normalized(result_bytes):
 
 
 def run(exe, p, n, job, angles, out, threads=1, dump=True, extra_env=None, timeout=7200):
+    """Run one job with `threads` threads and require a complete result.
+
+    Returns (scientific bytes, dump bytes, seconds, log, parsed fields).
+    """
     out.mkdir(parents=True, exist_ok=True)
     env = equiv.environment()
     for key in ("VIRAL_FORCE_REF", "VIRAL_SELFCHECK", "VIRAL_KERNEL", "VIRAL_PAR_MIN"):
@@ -90,11 +98,14 @@ def run(exe, p, n, job, angles, out, threads=1, dump=True, extra_env=None, timeo
 
 
 def check_same(ref, cand, label):
+    """Require identical dumps and results (threads line normalized) of two run() outputs."""
     equiv.equal_bytes(normalized(ref[0]), normalized(cand[0]), label + " result")
     equiv.equal_bytes(ref[1], cand[1], label + " dump")
 
 
 def suite_cases(max_p):
+    """Cases (p, n, job, angles) for p = 1..max_p, plus many samples at p = 4..8 and a
+    longer angles file read only in part."""
     cases = []
     for p in range(1, max_p + 1):
         if p <= 12:
@@ -110,6 +121,9 @@ def suite_cases(max_p):
 
 
 def run_suite(ref, fast2, args, work):
+    """suite mode: every case at 1, 4 and 8 threads against the frozen binary, the forced
+    kernels, a threaded self-check, threaded extension, the stop/resume protocol and
+    check.sh.  Returns a summary dict."""
     threads = [t for t in (1, 4, 8) if t <= args.max_threads]
     summary = dict(cases=0, threads=threads, depths={})
     for i, (p, n, job, angles) in enumerate(suite_cases(args.max_p)):
@@ -178,6 +192,7 @@ def run_suite(ref, fast2, args, work):
 
 
 def timed(exe, p, n, job, angles, out, threads):
+    """One run with dump: result and dump bytes, wall time, s/sample and the child's peak RSS."""
     out.mkdir(parents=True, exist_ok=True)
     env = equiv.environment()
     env["OMP_NUM_THREADS"] = str(threads)
@@ -202,6 +217,8 @@ def timed(exe, p, n, job, angles, out, threads):
 
 
 def run_large(fast, fast2, args, work):
+    """large mode: fast2 at each thread count against the validated fast binary at p = 26..30,
+    requiring identical results and dumps; returns timings, peak RSS and speedups."""
     depths = [int(x) for x in args.large_depths.split(",") if x]
     samples = {26: 16, 28: 8, 30: 4, 32: 2}
     wanted = [int(x) for x in args.threads.split(",") if x]
@@ -232,6 +249,7 @@ def run_large(fast, fast2, args, work):
 
 
 def main():
+    """Build fast2, run the chosen mode against the pinned reference binary, write the report."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("mode", choices=("suite", "large"))
     parser.add_argument("--cc", default="gcc")

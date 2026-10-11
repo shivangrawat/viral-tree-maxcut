@@ -11,12 +11,18 @@ code with viral_tree_hpc.c.  It is the independent check of the C program.
 usage:  python3 exact_small_p.py <angles_file> <p>          (p = 1 or 2)
 prints: exact c_VIRAL(p) and the exact soft value, to be compared with a
         Monte-Carlo run of viral_tree_hpc at the same p and angles.
+
+needs:  numpy (the only non-standard dependency in this repository).
+
+With params/angles_p2.txt it prints c_VIRAL(2) = 12380/16384 = 0.7556152344,
+the exact value that check.sh tests the solvers against.
 """
 import sys, itertools, math
 import numpy as np
 
 
 def read_angles(fname, p):
+    """Return (alpha, betas, gammas) for layers 1..p of an angles file (comment lines skipped)."""
     with open(fname) as f:
         lines = [l for l in f if l.strip() and not l.lstrip().startswith('#')]
     alpha = float(lines[0].split()[0])
@@ -29,7 +35,11 @@ def read_angles(fname, p):
 
 
 def build_tree(p):
-    """3-regular tree of depth p rooted at the edge (0,1); returns adjacency lists."""
+    """3-regular tree of depth p rooted at the edge (0, 1).
+
+    Returns (adj, N): adjacency lists and the number of vertices N = 4*2^p - 2.
+    Vertices are numbered breadth first; the leaves have a single neighbour.
+    """
     adj = {0: [1], 1: [0]}
     frontier = [0, 1]
     nxt = 2
@@ -46,6 +56,7 @@ def build_tree(p):
 
 
 def main():
+    """Run all 2^N seed configurations through the full dynamics; print exact c_VIRAL(p) and x_soft."""
     fname, p = sys.argv[1], int(sys.argv[2])
     assert p in (1, 2), "exact enumeration only for p = 1, 2"
     alpha, beta, gamma = read_angles(fname, p)

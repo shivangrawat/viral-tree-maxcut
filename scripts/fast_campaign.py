@@ -4,11 +4,11 @@
 Same commands and checks (init / run / status / verify / pending, frozen
 manifest, provenance records, one CPU and one thread per task).  The only
 difference: the build sidecar must name viral_tree_fast.c as its source,
-whose results are byte-identical to viral_tree_hpc.c
-(tests/test_fast_equivalence.py, FAST_SOLVER_CHANGES.md).
+whose results are byte-identical to viral_tree_hpc.c (docs/validation.md).
+Used for the p = 32 campaign results/torch-p32-million-v1 (docs/campaigns.md).
 
-viral_campaign.py itself is loaded unchanged and not edited, because every
-task of the running p=30 campaign executes it at start-up.
+viral_campaign.py is loaded as a module and only its SOURCE_SHA256 is replaced
+(it was kept unedited while campaigns were running it).
 """
 
 import importlib.util

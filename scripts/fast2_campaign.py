@@ -5,7 +5,7 @@ Same commands, manifest and checks as viral_campaign.py (init / run / status /
 verify / pending), with two differences:
 
   * the build sidecar must name viral_tree_fast2.c as its source (byte-identical
-    to viral_tree_hpc.c: tests/test_fast2_equivalence.py, FAST_SOLVER_CHANGES.md);
+    to viral_tree_hpc.c: docs/validation.md);
   * a campaign has a fixed number of threads per job, recorded in the manifest
     (--threads at init); every task must run with exactly that many CPUs and
     OpenMP threads, and every result file must say so.
@@ -14,8 +14,10 @@ verify / pending), with two differences:
 expected ids of any listed campaign of the same depth and angles: that is
 what guarantees new samples (sample k of job j is S = j*2^32 + k).
 
-viral_campaign.py itself is loaded unchanged and never edited: the running
-campaigns execute it.
+Used for all extension campaigns, results/torch-pP-extension-v1 and -v2
+(docs/campaigns.md).  viral_campaign.py is loaded as a module for its helpers,
+with its SOURCE_SHA256 replaced; init, inspection and launch are redefined
+here for the thread count.  Linux only (the launch record runs ldd).
 """
 
 import argparse
@@ -38,6 +40,7 @@ vc.SOURCE_SHA256 = FAST2_SOURCE_SHA256
 
 
 def threads_of(manifest):
+    """Thread count frozen in a fast2 manifest; ValueError if it is missing or invalid."""
     t = manifest.get("omp_num_threads")
     if not isinstance(t, int) or t < 1:
         raise ValueError("manifest has no valid thread count")
@@ -64,6 +67,7 @@ def check_avoid(p, angles_sha, ids, avoid_dirs):
 
 
 def initialize(args):
+    """init: as viral_campaign.initialize, plus --threads (frozen) and the --avoid id-overlap guard."""
     angles, executable, out = vc.paths(args)
     info = vc.build_info(executable)
     if not 1 <= args.p <= 40 or not 1 <= args.samples <= 4294967295:
@@ -77,7 +81,7 @@ def initialize(args):
     ids = list(range(args.first_id, args.first_id + args.jobs))
     angles_sha = vc.sha256(angles)
     if not args.avoid:
-        raise ValueError("give --avoid with every earlier campaign of this depth (or --avoid-none)")
+        raise ValueError("give --avoid with every earlier campaign of this depth (or --avoid none)")
     if args.avoid != ["none"]:
         check_avoid(args.p, angles_sha, ids, args.avoid)
     manifest = dict(schema=1, created_utc=datetime.now(timezone.utc).isoformat(),
@@ -99,6 +103,7 @@ def initialize(args):
 
 
 def inspect_campaign(out):
+    """status / verify / pending: as viral_campaign.inspect_campaign, with the frozen thread count."""
     manifest = vc.load_campaign(out)
     p, n, t = manifest["p"], manifest["samples_per_job"], threads_of(manifest)
     expected = set(manifest["expected_job_ids"])
@@ -136,6 +141,7 @@ def inspect_campaign(out):
 
 
 def launch(args):
+    """run: as viral_campaign.launch, with exactly the frozen number of CPUs and OpenMP threads."""
     angles, executable, out = vc.paths(args)
     m = vc.load_campaign(out)
     t = threads_of(m)
@@ -164,6 +170,7 @@ def launch(args):
 
 
 def main():
+    """Command-line entry point; returns the exit status."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("init", "run"):

@@ -2,11 +2,11 @@
 """
 merge_results.py  --  combine the output files of viral_tree_hpc jobs.
 
-usage:  python3 merge_results.py [DIR ...] [-p P] [-v]
+usage:  python3 merge_results.py [DIR ...] [-p P] [-v] [--table]
 
 Reads every  viral_tree_p<p>_job<job>.txt  in the given directories (default:
-current directory), groups them by depth p, adds up n_done and n_cut, and
-prints for each p:
+current directory; not searched recursively), groups them by depth p, adds
+up n_done and n_cut, and prints for each p:
 
     x_thresh = n_cut / n,  its standard error,
     the one-sided lower confidence bounds at 95%, 99%, 99.9%, 99.99%
@@ -16,6 +16,14 @@ prints for each p:
 
     M_g >= c_VIRAL(p) for all g >= 2p+2 is a theorem; the confidence bound is
     the statistical part of the statement.
+
+--table prints instead Table I of the paper, one Markdown row per depth: the
+estimate with its standard error in units of the last digit, the exact
+one-sided 99.99999% Clopper-Pearson bound floored to 5 decimals, jobs,
+samples and core-hours.  For the published results:
+
+    python3 merge_results.py --table results/torch-p*-*/jobs
+    python3 merge_results.py results/torch-p32-*/jobs -p 32      (one depth in full)
 
 Safety checks
   * the same (p, job) must not appear twice (that would double count the same
@@ -28,6 +36,7 @@ Pure Python 3, no dependencies.  If scipy is available (-v) the exact bound is
 cross-checked against scipy.stats.beta.ppf.
 """
 import sys, os, glob, math, argparse
+from decimal import Decimal, ROUND_FLOOR
 
 
 # ----------------------------------------------------------------------------
@@ -35,6 +44,7 @@ import sys, os, glob, math, argparse
 # (Numerical Recipes 'betacf'), and its inverse by bisection.
 # ----------------------------------------------------------------------------
 def _betacf(a, b, x, maxit=100000, eps=1e-15):
+    """Continued fraction of the incomplete beta function I_x(a, b) (modified Lentz)."""
     tiny = 1e-300
     qab, qap, qam = a + b, a + 1.0, a - 1.0
     c, d = 1.0, 1.0 - qab * x / qap
@@ -99,7 +109,7 @@ def normal_lower(k, n, delta):
 
 
 def _erfinv(y):
-    # bisection on math.erf, plenty accurate for our purposes
+    """Inverse error function by bisection on math.erf (plenty accurate here)."""
     lo, hi = -10.0, 10.0
     for _ in range(200):
         mid = 0.5 * (lo + hi)
@@ -110,6 +120,10 @@ def _erfinv(y):
 
 # ----------------------------------------------------------------------------
 def read_file(path):
+    """Parse one result file into a dict (p, job, n, cut, soft, complete, hash, core_s, angles).
+
+    Comment and blank lines are skipped; a missing required field raises ValueError.
+    """
     d = {}
     with open(path) as f:
         for line in f:
@@ -131,11 +145,67 @@ def read_file(path):
     }
 
 
+def check_depth(p, rs):
+    """Exit with an error if a job id of depth p appears twice or the angles differ."""
+    seen = {}
+    for r in rs:
+        if r['job'] in seen:
+            sys.exit(f"ERROR: p={p} job={r['job']} appears twice:\n  {seen[r['job']]}\n  {r['path']}\n"
+                     "These are the SAME samples; remove one of the files.")
+        seen[r['job']] = r['path']
+    hashes = {r['hash'] for r in rs}
+    if len(hashes) > 1:
+        sys.exit(f"ERROR: p={p}: files were produced with different angles (hashes {sorted(hashes)}).\n"
+                 "Samples with different angles must not be combined.")
+
+
+TABLE_CONFIDENCE = 0.9999999      # one-sided confidence of Table I (about 5.2 sigma)
+
+
+def floor5(x):
+    """x rounded DOWN to 5 decimals: a lower bound must never be rounded up."""
+    return Decimal(x).quantize(Decimal('0.00001'), rounding=ROUND_FLOOR)
+
+
+def print_table(by_p):
+    """Print Table I (Markdown): one row per depth, then a total row.
+
+    L is the exact Clopper-Pearson bound at confidence TABLE_CONFIDENCE, floored to
+    5 decimals.  As a sanity check it must lie within 2e-6 of the normal
+    approximation; the two can still floor to different 5th decimals.
+    """
+    delta = 1.0 - TABLE_CONFIDENCE
+    print(f"| p | girth g >= | c_VIRAL(p) | L ({100 * TABLE_CONFIDENCE:.5f}%) | jobs | samples | core-hours |")
+    print("|---:|---:|:---:|:---:|---:|---:|---:|")
+    tot_jobs, tot_n, tot_core, unfinished = 0, 0, 0.0, []
+    for p in sorted(by_p):
+        rs = by_p[p]
+        n = sum(r['n'] for r in rs)
+        k = sum(r['cut'] for r in rs)
+        core = sum(r['core_s'] for r in rs)
+        if n == 0:
+            continue
+        x = k / n
+        se = math.sqrt(x * (1.0 - x) / n)
+        L = clopper_pearson_lower(k, n, delta)
+        if abs(L - normal_lower(k, n, delta)) > 2e-6:
+            sys.exit(f"ERROR: p={p}: exact and normal {100 * TABLE_CONFIDENCE}% bounds disagree")
+        print(f"| {p} | {2 * p + 2} | {x:.6f}({round(se * 1e6)}) | {floor5(L)} | {len(rs)} | {n} | {core / 3600:.1f} |")
+        tot_jobs, tot_n, tot_core = tot_jobs + len(rs), tot_n + n, tot_core + core
+        unfinished += [f"p={p}: {sum(not r['complete'] for r in rs)}"] if any(not r['complete'] for r in rs) else []
+    print(f"| total | | | | {tot_jobs} | {tot_n} | {tot_core / 3600:.1f} |")
+    if unfinished:
+        print(f"\nWARNING: jobs still running / incomplete ({', '.join(unfinished)})")
+
+
 def main():
+    """Merge the result files named on the command line and print the estimates (or Table I)."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('dirs', nargs='*', default=['.'])
     ap.add_argument('-p', type=int, default=None, help='only this depth')
     ap.add_argument('-v', action='store_true', help='list every job; cross-check with scipy if present')
+    ap.add_argument('--table', action='store_true',
+                    help='print Table I of the paper (one row per depth) instead')
     args = ap.parse_args()
 
     files = []
@@ -152,19 +222,15 @@ def main():
     for r in recs:
         by_p.setdefault(r['p'], []).append(r)
 
+    if args.table:
+        for p in sorted(by_p):
+            check_depth(p, by_p[p])
+        print_table(by_p)
+        return
+
     for p in sorted(by_p):
         rs = by_p[p]
-        # --- safety checks
-        seen = {}
-        for r in rs:
-            if r['job'] in seen:
-                sys.exit(f"ERROR: p={p} job={r['job']} appears twice:\n  {seen[r['job']]}\n  {r['path']}\n"
-                         "These are the SAME samples; remove one of the files.")
-            seen[r['job']] = r['path']
-        hashes = {r['hash'] for r in rs}
-        if len(hashes) > 1:
-            sys.exit(f"ERROR: p={p}: files were produced with different angles (hashes {sorted(hashes)}).\n"
-                     "Samples with different angles must not be combined.")
+        check_depth(p, rs)          # --- safety checks
         # --- combine
         n = sum(r['n'] for r in rs)
         k = sum(r['cut'] for r in rs)
